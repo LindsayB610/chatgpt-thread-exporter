@@ -1,4 +1,5 @@
 import type { CliOptions } from "../types.js";
+import { isAbsolute, posix, sep } from "node:path";
 
 export function parseArgs(argv: string[]): CliOptions {
   const options: CliOptions = { url: "" };
@@ -53,12 +54,28 @@ export function validateOptions(options: CliOptions): void {
     throw new Error("Missing required argument: --url");
   }
 
+  validateLocalPath(options.out, "--out");
+  validateLocalPath(options.debugHtml, "--debug-html");
+  validateLocalPath(options.debugJson, "--debug-json");
+
   if (options.repo && !options.repoPath) {
     throw new Error("--repo requires --repo-path");
   }
 
   if (options.repoPath && !options.repo) {
     throw new Error("--repo-path requires --repo");
+  }
+
+  if (options.repo && !isRepoSlug(options.repo)) {
+    throw new Error("--repo must be in the form owner/name");
+  }
+
+  if (options.repoPath) {
+    validateRepoPath(options.repoPath);
+  }
+
+  if (options.branch && !options.repo) {
+    throw new Error("--branch requires --repo");
   }
 }
 
@@ -70,4 +87,68 @@ function readValue(argv: string[], index: number, flag: string): string {
   }
 
   return value;
+}
+
+function validateLocalPath(path: string | undefined, flag: string): void {
+  if (path === undefined) {
+    return;
+  }
+
+  if (path.trim().length === 0) {
+    throw new Error(`${flag} requires a non-empty file path`);
+  }
+
+  if (path.endsWith("/") || path.endsWith("\\")) {
+    throw new Error(`${flag} must point to a file, not a directory`);
+  }
+
+  const segments = path.split(/[\\/]+/).filter(Boolean);
+
+  if (segments.length === 0) {
+    throw new Error(`${flag} must point to a file, not a directory`);
+  }
+
+  if (segments.includes("..")) {
+    throw new Error(`${flag} must not contain parent-directory traversal`);
+  }
+
+  if (path === "." || path === "..") {
+    throw new Error(`${flag} must point to a file, not a directory`);
+  }
+
+  if (isAbsolute(path)) {
+    return;
+  }
+
+  if (path.split(sep).join(posix.sep).startsWith("./")) {
+    return;
+  }
+}
+
+function validateRepoPath(repoPath: string): void {
+  if (repoPath.trim().length === 0) {
+    throw new Error("--repo-path requires a non-empty repository-relative file path");
+  }
+
+  if (repoPath.startsWith("/")) {
+    throw new Error("--repo-path must be repository-relative");
+  }
+
+  if (repoPath.endsWith("/")) {
+    throw new Error("--repo-path must point to a file, not a directory");
+  }
+
+  const segments = repoPath.split("/").filter(Boolean);
+
+  if (segments.length === 0) {
+    throw new Error("--repo-path must point to a file, not a directory");
+  }
+
+  if (segments.includes("..")) {
+    throw new Error("--repo-path must not contain parent-directory traversal");
+  }
+}
+
+function isRepoSlug(value: string): boolean {
+  return /^[^/\s]+\/[^/\s]+$/.test(value);
 }

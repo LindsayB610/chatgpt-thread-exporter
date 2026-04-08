@@ -1,0 +1,146 @@
+import { describe, expect, it } from "vitest";
+import { parseArgs, validateOptions } from "../../src/utils/args.js";
+
+describe("parseArgs", () => {
+  it("parses the core flag set", () => {
+    const options = parseArgs([
+      "--url",
+      "https://chatgpt.com/share/abc",
+      "--out",
+      "./exports/thread.md",
+      "--stdout",
+      "--dry-run",
+      "--debug-html",
+      "./debug/thread.html",
+      "--debug-json",
+      "./debug/thread.json",
+      "--force"
+    ]);
+
+    expect(options).toEqual({
+      url: "https://chatgpt.com/share/abc",
+      out: "./exports/thread.md",
+      stdout: true,
+      dryRun: true,
+      debugHtml: "./debug/thread.html",
+      debugJson: "./debug/thread.json",
+      force: true
+    });
+  });
+
+  it("fails on unknown flags", () => {
+    expect(() => parseArgs(["--url", "https://chatgpt.com/share/abc", "--wat"])).toThrow(
+      "Unknown argument: --wat"
+    );
+  });
+});
+
+describe("validateOptions", () => {
+  it("accepts stdout-only usage with just a URL", () => {
+    expect(() =>
+      validateOptions({
+        url: "https://chatgpt.com/share/abc"
+      })
+    ).not.toThrow();
+  });
+
+  it("accepts dry-run with debug artifacts", () => {
+    expect(() =>
+      validateOptions({
+        url: "https://chatgpt.com/share/abc",
+        dryRun: true,
+        debugHtml: "./debug/thread.html",
+        debugJson: "./debug/thread.json"
+      })
+    ).not.toThrow();
+  });
+
+  it("requires a URL", () => {
+    expect(() => validateOptions({ url: "" })).toThrow("Missing required argument: --url");
+  });
+
+  it("requires repo-path when repo is provided", () => {
+    expect(() =>
+      validateOptions({
+        url: "https://chatgpt.com/share/abc",
+        repo: "LindsayB610/chat-exports"
+      })
+    ).toThrow("--repo requires --repo-path");
+  });
+
+  it("requires repo when repo-path is provided", () => {
+    expect(() =>
+      validateOptions({
+        url: "https://chatgpt.com/share/abc",
+        repoPath: "conversation-exports/thread.md"
+      })
+    ).toThrow("--repo-path requires --repo");
+  });
+
+  it("requires branch to be paired with repo mode", () => {
+    expect(() =>
+      validateOptions({
+        url: "https://chatgpt.com/share/abc",
+        branch: "feature/test"
+      })
+    ).toThrow("--branch requires --repo");
+  });
+
+  it("validates repo slug format", () => {
+    expect(() =>
+      validateOptions({
+        url: "https://chatgpt.com/share/abc",
+        repo: "LindsayB610",
+        repoPath: "conversation-exports/thread.md"
+      })
+    ).toThrow("--repo must be in the form owner/name");
+  });
+
+  it("rejects directory-like local paths", () => {
+    expect(() =>
+      validateOptions({
+        url: "https://chatgpt.com/share/abc",
+        out: "./exports/"
+      })
+    ).toThrow("--out must point to a file, not a directory");
+  });
+
+  it("rejects parent traversal in local paths", () => {
+    expect(() =>
+      validateOptions({
+        url: "https://chatgpt.com/share/abc",
+        out: "../thread.md"
+      })
+    ).toThrow("--out must not contain parent-directory traversal");
+  });
+
+  it("rejects invalid repo-path traversal", () => {
+    expect(() =>
+      validateOptions({
+        url: "https://chatgpt.com/share/abc",
+        repo: "LindsayB610/chat-exports",
+        repoPath: "../thread.md"
+      })
+    ).toThrow("--repo-path must not contain parent-directory traversal");
+  });
+
+  it("rejects absolute-style repo paths", () => {
+    expect(() =>
+      validateOptions({
+        url: "https://chatgpt.com/share/abc",
+        repo: "LindsayB610/chat-exports",
+        repoPath: "/thread.md"
+      })
+    ).toThrow("--repo-path must be repository-relative");
+  });
+
+  it("accepts combined local output and stdout behavior", () => {
+    expect(() =>
+      validateOptions({
+        url: "https://chatgpt.com/share/abc",
+        out: "./exports/thread.md",
+        stdout: true
+      })
+    ).not.toThrow();
+  });
+});

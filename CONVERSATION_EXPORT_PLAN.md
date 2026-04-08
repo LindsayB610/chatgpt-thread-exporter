@@ -119,9 +119,16 @@ The POC is successful if:
 - code blocks remain readable
 - stdout mode works without side effects
 - local file mode works with explicit paths
-- GitHub write mode works with explicit repo and path
 - parser failures are diagnosable when the shared-link page shape changes
 - the implementation can be developed, run, and published without paid infrastructure owned by the maintainer
+
+The v1 release candidate is successful if:
+
+- the local-only exporter path is reliable end to end
+- fixture-based extractor, normalizer, and renderer tests are stable
+- one manual live-link smoke test succeeds before release
+
+GitHub write mode is valuable, but it is not required for the first public OSS release candidate.
 
 The POC does not need to prove:
 
@@ -177,10 +184,45 @@ chatgpt-thread-exporter \
 - `--repo` requires `--repo-path`.
 - `--repo-path` without `--repo` is an error.
 - `--dry-run` performs fetch, extract, normalize, and render, but performs no writes.
-- `--dry-run` prints Markdown to stdout unless `--debug-json` or `--debug-html` is the only requested output worth keeping.
+- `--dry-run` still renders Markdown and prints it to stdout unless a future `--quiet` flag is introduced.
+- `--debug-html` writes fetched HTML to the requested local path whether or not `--dry-run` is set.
+- `--debug-json` writes extracted structured debug data to the requested local path whether or not `--dry-run` is set.
+- debug artifact writes are the only writes allowed during `--dry-run`.
 - `--force` allows overwrite behavior for explicit destinations.
 - Without `--force`, writing to an existing local file is an error.
 - Without `--force`, GitHub writes must fail if the target path already exists and no explicit update behavior was requested.
+
+### Behavior Matrix
+
+- `--url` only: print Markdown to stdout
+- `--url --stdout`: print Markdown to stdout
+- `--url --out <path>`: write Markdown to local file only
+- `--url --out <path> --stdout`: write local file and print Markdown to stdout
+- `--url --dry-run`: print Markdown to stdout and perform no transcript-destination writes
+- `--url --dry-run --out <path>`: print Markdown to stdout and do not write the transcript file
+- `--url --dry-run --repo ... --repo-path ...`: print Markdown to stdout and do not call GitHub
+- `--url --debug-html <path>`: write debug HTML artifact and also follow normal transcript output behavior
+- `--url --debug-json <path>`: write debug JSON artifact and also follow normal transcript output behavior
+- `--url --dry-run --debug-html <path> --debug-json <path>`: print Markdown to stdout and write both local debug artifacts only
+
+### Path Validation
+
+Local path rules for `--out`, `--debug-html`, and `--debug-json`:
+
+- empty paths are invalid
+- directory-only paths are invalid
+- parent-directory traversal like `..` should be rejected in generated default paths and treated cautiously in explicit paths
+- if explicit absolute paths are allowed, document that they are used exactly as provided
+- path validation errors should fail before any network fetch
+
+GitHub path rules for `--repo-path`:
+
+- must be a non-empty repository-relative file path
+- must not begin with `/`
+- must not contain `..` traversal segments
+- must not end with `/`
+- must not target an empty filename
+- normalization must be deterministic before API calls
 
 ## Architecture
 
@@ -212,6 +254,16 @@ Notes:
 - extraction logic must be isolated behind a small interface
 - extractor errors should include structured failure reasons
 - debug mode should make it easy to save HTML and extracted payloads for repair work
+- supported shared-link shapes are defined by committed fixtures and explicitly documented live-smoke compatibility notes
+
+### Compatibility Policy
+
+Compatibility is defined conservatively for v1:
+
+- a shared-link shape is considered supported only if it is covered by committed fixtures or by an explicitly documented live-smoke result
+- new page shapes should not silently broaden support claims until they have regression coverage
+- fixture-backed compatibility is the primary support contract for the extractor
+- live-link checks are confirmation, not the source of truth for long-term support claims
 
 ### 3. Normalizer
 
@@ -260,6 +312,7 @@ Notes:
 - text and code are first-class
 - unsupported block types should degrade into explicit placeholders, not disappear silently
 - `metadata.source` can preserve raw details needed for future repairs without affecting the rendered output
+- v1 may collapse unmodeled rich structures into `unknown` blocks without treating that as a parser defect
 
 ### 4. Renderer
 
@@ -307,6 +360,7 @@ Rules:
 - create parent directories when needed
 - fail on existing file unless `--force` is set
 - never infer a default local save path
+- validate explicit paths before fetch
 
 ### 6. GitHub Writer
 
@@ -320,11 +374,19 @@ Rules:
 - if target file does not exist, create it
 - if target file exists and `--force` is not set, fail with a clear message
 - if target file exists and `--force` is set, update it using the current blob SHA
+- treat SHA mismatch or conflict responses as failures with actionable guidance rather than silently retrying
+- branch behavior must be explicit: write to the provided branch or the repo default branch, but do not auto-create branches in v1
 - use an explicit commit message format
 
 Suggested commit message:
 
 - `Export ChatGPT thread: <title>`
+
+GitHub mode contract:
+
+- create-only by default
+- overwrite only with `--force`
+- fail clearly on missing auth, missing repo access, invalid repo path, and API conflicts
 
 ## Naming and Title Strategy
 
@@ -353,6 +415,8 @@ Recommended pattern:
 - `YYYY-MM-DD-<slug>.md`
 
 If a path is not fully specified by the user in a future helper mode, the same shared link should map deterministically to the same base filename.
+
+Path and title determinism should be tested together, not only as isolated unit behavior.
 
 ## Failure Modes
 
@@ -400,6 +464,7 @@ Mitigations:
 - support `--dry-run`
 - print Markdown to stdout on write failure when practical
 - include GitHub API error details without leaking secrets
+- include clear guidance when auth is missing or repo access is insufficient
 
 ### 5. Privacy mistakes
 
@@ -426,6 +491,45 @@ Mitigations:
 
 This needs to be part of v1, not postponed.
 
+### Recommended Development Style
+
+Use a hybrid testing approach:
+
+- use TDD for stable, deterministic logic
+- use fixture-driven development for the extractor
+
+TDD is a strong fit for:
+
+- CLI argument parsing and validation
+- title derivation
+- slug generation
+- overwrite rules
+- Markdown renderer behavior
+- normalized transcript behavior once fixture shapes are known
+
+Fixture-driven development is the right fit for the extractor because the first pass depends on observing real shared-link HTML structure.
+
+Recommended extractor workflow:
+
+1. capture a real shared-link HTML fixture
+2. sanitize it before commit
+3. write a failing extractor test against that fixture
+4. implement extraction logic to satisfy the test
+5. keep the fixture as a regression guard
+
+### Fixture Hygiene
+
+Committed fixtures must be safe for a public OSS repo.
+
+Rules:
+
+- never commit sensitive or private conversation content
+- redact names, emails, links, IDs, and other user-specific identifiers unless they are already intentionally public and necessary for the parser shape
+- prefer sanitized real fixtures over synthetic fixtures when parser shape would otherwise be lost
+- keep a private local fixture set outside the repo when a shape is useful but unsafe to publish
+- document the sanitization approach used for each committed fixture
+- fixture review should be part of normal code review before commit
+
 ### Fixture Tests
 
 Capture a small set of representative shared-link HTML fixtures:
@@ -440,15 +544,90 @@ Test expectations:
 - normalizer produces stable turn/block structure
 - renderer snapshots are readable and deterministic
 
+Fixture coverage should expand whenever a new shared-link shape or transcript block type is discovered.
+
+Negative fixture coverage should include:
+
+- missing payload
+- malformed or truncated HTML
+- unexpected payload shape
+- unsupported block structures
+
 ### Unit Tests
 
 Add focused tests for:
 
+- CLI argument parsing
 - title derivation
 - slug generation
 - destination validation
+- path validation
 - overwrite rules
 - renderer formatting of mixed text and code
+
+CLI-facing tests should also cover:
+
+- exit codes
+- stdout vs stderr separation
+- user-facing error messages
+- meaningful flag combinations
+
+### Integration Tests
+
+Add end-to-end tests that run:
+
+- fixture HTML input
+- extraction
+- normalization
+- rendering
+
+Coverage goals:
+
+- one plain-text conversation fixture
+- one fixture with code blocks
+- one fixture with unsupported or richer content that degrades gracefully
+- one malformed fixture that produces a clear failure
+- one partial fixture that still renders useful output with placeholders
+
+These should verify the full pipeline produces stable Markdown from representative saved inputs.
+
+### Writer Tests
+
+Add tests for:
+
+- local writer creates parent directories
+- local writer refuses overwrite without `--force`
+- local writer allows overwrite with `--force`
+- debug artifact writes succeed during `--dry-run`
+- GitHub writer create behavior
+- GitHub writer SHA-based update behavior
+- GitHub writer auth failure behavior
+- GitHub writer conflict behavior
+- GitHub writer branch selection behavior
+
+GitHub writer tests should mock HTTP interactions rather than requiring live network access.
+
+### Test Gates
+
+Every PR should pass:
+
+- unit tests
+- fixture-based integration tests
+- writer tests with mocked GitHub interactions
+- CLI behavior tests for exit codes and stdout/stderr behavior
+
+Manual before release:
+
+- one live shared-link smoke test
+- one manual check of debug artifact output
+
+Release should be blocked by:
+
+- fixture regressions
+- renderer golden test diffs not intentionally approved
+- broken CLI behavior for documented flag combinations
+
+These gates are the operational definition of “good coverage” for this project.
 
 ### Smoke Test
 
@@ -456,79 +635,188 @@ One manual smoke-test command against a real shared link should remain part of t
 
 Testing and CI should stay on free-tier-friendly tooling and should not require paid external services.
 
-## Build Order
+Treat live-link validation as release smoke testing, not as the primary gate for day-to-day development.
 
-### Phase 1: Scaffold and Contracts
+## Development Phases
 
-- create CLI scaffold in `LindsayB610/chatgpt-thread-exporter`
-- define TypeScript types for extracted and normalized data
-- implement argument validation and destination rules
-- add basic test harness
+Break the implementation into small, discrete chunks that each leave the repo in a testable state.
 
-Success:
+### Phase 0: Repo Foundation
 
-- CLI validates inputs correctly
-- destination semantics are unambiguous
+- create the public repo scaffold
+- add `README.md`, `LICENSE`, and `.gitignore`
+- add TypeScript and test tooling config
+- create source and test directories
 
-### Phase 2: Fetch and Debug Path
+Done when:
 
-- fetch shared-link HTML
+- the repo clearly communicates scope, license, and project shape
+- the scaffold can support incremental implementation
+
+### Phase 1: CLI Contract
+
+- implement argument parsing
+- implement destination validation
+- define stdout, `--out`, `--repo`, `--repo-path`, `--dry-run`, `--debug-html`, `--debug-json`, and `--force` semantics
+- define path validation rules
+- add TDD coverage for CLI validation behavior
+
+Done when:
+
+- invalid argument combinations fail clearly
+- default stdout behavior is unambiguous
+- the CLI contract is covered by tests
+
+### Phase 2: Core Types and Contracts
+
+- define extracted, normalized, and rendered transcript types
+- define supported fixture-driven compatibility policy
+- define debug artifact shapes
+
+Done when:
+
+- the project has a stable internal contract to build against
+- fixture support boundaries are explicit
+
+### Phase 3: Pipeline Skeleton
+
+- wire the high-level pipeline stages together
+- keep extractor and writer implementations stubbed if needed
+- add pipeline wiring tests rather than true end-to-end smoke tests
+
+Done when:
+
+- the CLI path is coherent even if some stages are placeholders
+- stage boundaries are testable independently
+
+### Phase 4: Fetcher and Debug Output
+
+- implement shared-link fetching
+- capture final URL and response status
 - implement `--debug-html`
-- capture request metadata
-- save first real fixtures for development
+- implement `--debug-json`
+- add tests around fetcher error handling where practical
 
-Success:
+Done when:
 
-- CLI can fetch a real shared link reliably
-- raw HTML can be saved for parser work
+- the CLI can fetch a real shared link
+- raw HTML and extracted debug data can be saved locally for parser work
 
-### Phase 3: Extractor
+### Phase 5: Fixture Capture
 
-- implement payload discovery
-- parse the current shared-link page shape
-- add extractor fixture tests
+- collect the first representative shared-link HTML fixtures
+- sanitize them for public commit
+- document fixture handling rules
+- add failing extractor tests tied to those fixtures
 
-Success:
+Done when:
 
-- extractor works on saved fixtures and at least one live link
+- the repo contains enough real fixtures to drive extractor work
+- parser work can proceed without depending on live links every time
 
-### Phase 4: Normalize and Render
+### Phase 6: Extractor V1
 
-- normalize extracted data into turn/block structure
-- render Markdown to stdout
-- snapshot test output
+- implement payload discovery for the current shared-link shape
+- return structured extraction metadata and clear failures
+- satisfy the first fixture tests
 
-Success:
+Done when:
 
-- short real conversations render into readable Markdown
-- code blocks survive intact
+- extractor tests pass on the initial saved fixtures
+- extractor works on at least one live shared link
 
-### Phase 5: Local Write Path
+### Phase 7: Normalizer V1
 
-- add `--out`
+- convert extracted payloads into the transcript turn/block model
+- preserve text and code as first-class blocks
+- degrade unsupported content into explicit placeholders
+- add tests for normalized output on saved fixtures
+
+Done when:
+
+- normalized output is stable for the first fixture set
+- block boundaries survive into the renderer layer
+
+### Phase 8: Renderer V1
+
+- render normalized transcripts to Markdown
+- preserve turn order and code fences
+- add snapshot or golden tests for representative outputs
+- verify whitespace and heading stability in golden tests
+
+Done when:
+
+- plain-text and code-heavy fixtures render into readable Markdown
+- renderer output is deterministic under test
+
+### Phase 9: Local File Writer
+
+- implement `--out`
 - create parent directories
-- enforce overwrite rules
+- enforce overwrite rules and `--force`
+- add writer tests for file creation and overwrite behavior
 
-Success:
+Done when:
 
-- CLI writes Markdown to an explicit local file path safely
+- local export works safely for explicit file paths
+- overwrite behavior is covered by tests
 
-### Phase 6: GitHub Write Path
+### Phase 10: Full Local Export Integration
 
-- add GitHub auth and writer
-- support create and force-update behavior
-- surface clear commit results
-
-Success:
-
-- CLI can create or update a Markdown file in an explicitly selected repo path
-
-### Phase 7: Polish
-
-- improve formatting
+- run end-to-end tests from fixture HTML through Markdown output
 - tighten error messages
-- document privacy and limitations
-- write README examples
+- ensure `--dry-run` and stdout behavior remain correct
+
+Done when:
+
+- the local-only exporter path is reliable and pleasant to use
+- the tool delivers its core value without GitHub mode
+
+This is the target first public OSS release candidate.
+
+### Phase 11: GitHub Writer
+
+- implement GitHub auth handling
+- implement create and force-update behavior
+- mock GitHub API interactions in tests
+- surface clear commit results and failure messages
+
+Done when:
+
+- the CLI can write to an explicitly selected repo path
+- GitHub behavior is tested without requiring paid infrastructure
+
+This can ship as `v1.1` if it is not ready at the first public release.
+
+### Phase 12: Final Polish
+
+- improve formatting and metadata presentation
+- tighten privacy and limitations docs
+- add README usage examples
+- run final manual smoke tests
+- decide packaging and release posture for the public CLI
+
+Done when:
+
+- the project is ready for a first public OSS release
+- the README matches actual behavior
+
+### Packaging and Release Mechanics
+
+If public distribution through npm is desired, decide this explicitly after the local-only release candidate is stable.
+
+Questions to answer before npm publication:
+
+- whether the package should be published to npm at all or remain GitHub-installable first
+- which files are included in the published package
+- whether the CLI should publish from built `dist/` output only
+- versioning policy for parser-shape fixes vs behavior changes
+- release checklist for fixture review, test gates, and smoke testing
+
+Recommended posture:
+
+- do not block the first public repo release on npm publication
+- add npm publishing only after local install and release mechanics are proven comfortable
 
 ## Auth Strategy
 
@@ -547,7 +835,17 @@ Use a fine-grained personal access token with:
 
 Prefer environment-variable configuration for the token in CLI usage.
 
+Suggested environment variable:
+
+- `GITHUB_TOKEN`
+
 GitHub auth is optional and only needed for GitHub write mode.
+
+Auth behavior:
+
+- fail clearly if GitHub mode is requested without a token
+- fail clearly if the token lacks repo access
+- do not prompt interactively in v1
 
 ## README Commitments
 
@@ -575,6 +873,13 @@ Tech selection rule:
 
 - prefer free, well-supported open source dependencies with licenses compatible with a public OSS project
 
+Support policy:
+
+- use one package manager consistently in the repo
+- publish and test against an explicit minimum Node.js version
+- keep the dependency surface small
+- avoid dependencies that would require frequent emergency maintenance for a simple CLI
+
 ## Recommendation Summary
 
 Build the first version as a small CLI in `LindsayB610/chatgpt-thread-exporter`.
@@ -584,8 +889,11 @@ Ship this shape first:
 - shared-link URL in
 - Markdown to stdout by default
 - explicit local file write
-- explicit GitHub write
 - parser fixtures and renderer tests from the start
+
+Optional next release:
+
+- explicit GitHub write
 
 The key v2 change is this:
 
