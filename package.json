@@ -1,0 +1,31 @@
+{
+  "name": "chatgpt-thread-exporter",
+  "version": "0.1.0",
+  "description": "Local-first CLI for exporting ChatGPT shared-link threads to Markdown.",
+  "license": "MIT",
+  "private": false,
+  "type": "module",
+  "bin": {
+    "chatgpt-thread-exporter": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check": "tsc --noEmit -p tsconfig.json",
+    "dev": "tsx src/cli.ts",
+    "test": "vitest run"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@types/node": "^24.5.0",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}
