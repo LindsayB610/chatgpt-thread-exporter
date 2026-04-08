@@ -33,6 +33,31 @@ describe("parseArgs", () => {
       "Unknown argument: --wat"
     );
   });
+
+  it("fails when a flag that requires a value is missing one", () => {
+    expect(() => parseArgs(["--url"])).toThrow("Missing value for --url");
+    expect(() => parseArgs(["--url", "https://chatgpt.com/share/abc", "--out"])).toThrow(
+      "Missing value for --out"
+    );
+    expect(() => parseArgs(["--url", "https://chatgpt.com/share/abc", "--repo"])).toThrow(
+      "Missing value for --repo"
+    );
+    expect(() =>
+      parseArgs(["--url", "https://chatgpt.com/share/abc", "--repo-path"])
+    ).toThrow("Missing value for --repo-path");
+    expect(() =>
+      parseArgs(["--url", "https://chatgpt.com/share/abc", "--debug-html"])
+    ).toThrow("Missing value for --debug-html");
+    expect(() =>
+      parseArgs(["--url", "https://chatgpt.com/share/abc", "--debug-json"])
+    ).toThrow("Missing value for --debug-json");
+    expect(() => parseArgs(["--url", "https://chatgpt.com/share/abc", "--title"])).toThrow(
+      "Missing value for --title"
+    );
+    expect(() => parseArgs(["--url", "https://chatgpt.com/share/abc", "--branch"])).toThrow(
+      "Missing value for --branch"
+    );
+  });
 });
 
 describe("validateOptions", () => {
@@ -132,6 +157,36 @@ describe("validateOptions", () => {
         repoPath: "/thread.md"
       })
     ).toThrow("--repo-path must be repository-relative");
+  });
+
+  it("rejects windows-style absolute repo paths", () => {
+    expect(() =>
+      validateOptions({
+        url: "https://chatgpt.com/share/abc",
+        repo: "LindsayB610/chat-exports",
+        repoPath: "C:/thread.md"
+      })
+    ).toThrow("--repo-path must be repository-relative");
+  });
+
+  it("rejects backslash-separated repo paths", () => {
+    expect(() =>
+      validateOptions({
+        url: "https://chatgpt.com/share/abc",
+        repo: "LindsayB610/chat-exports",
+        repoPath: "conversation-exports\\thread.md"
+      })
+    ).toThrow("--repo-path must use forward slashes");
+  });
+
+  it("rejects repo paths with repeated slashes", () => {
+    expect(() =>
+      validateOptions({
+        url: "https://chatgpt.com/share/abc",
+        repo: "LindsayB610/chat-exports",
+        repoPath: "conversation-exports//thread.md"
+      })
+    ).toThrow("--repo-path must not contain repeated slashes");
   });
 
   it("accepts combined local output and stdout behavior", () => {

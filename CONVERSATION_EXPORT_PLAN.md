@@ -211,7 +211,7 @@ Local path rules for `--out`, `--debug-html`, and `--debug-json`:
 
 - empty paths are invalid
 - directory-only paths are invalid
-- parent-directory traversal like `..` should be rejected in generated default paths and treated cautiously in explicit paths
+- parent-directory traversal like `..` should be rejected in both generated and explicit local paths
 - if explicit absolute paths are allowed, document that they are used exactly as provided
 - path validation errors should fail before any network fetch
 
@@ -219,6 +219,8 @@ GitHub path rules for `--repo-path`:
 
 - must be a non-empty repository-relative file path
 - must not begin with `/`
+- must not contain backslashes
+- must not contain repeated slashes
 - must not contain `..` traversal segments
 - must not end with `/`
 - must not target an empty filename
@@ -683,6 +685,7 @@ Done when:
 - wire the high-level pipeline stages together
 - keep extractor and writer implementations stubbed if needed
 - add pipeline wiring tests rather than true end-to-end smoke tests
+- basic fetcher hardening may begin here if needed to keep the skeleton runnable
 
 Done when:
 
@@ -879,6 +882,7 @@ Support policy:
 - publish and test against an explicit minimum Node.js version
 - keep the dependency surface small
 - avoid dependencies that would require frequent emergency maintenance for a simple CLI
+- keep production build output limited to runtime source files, not tests
 
 ## Recommendation Summary
 

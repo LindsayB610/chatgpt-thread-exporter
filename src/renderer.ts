@@ -38,5 +38,11 @@ function renderBlock(block: ExportBlock): string[] {
       return [`\`\`\`${block.language ?? ""}`, block.text, "```"];
     case "unknown":
       return [`[Unsupported content${block.rawType ? `: ${block.rawType}` : ""}] ${block.summary}`];
+    default:
+      return assertNever(block);
   }
+}
+
+function assertNever(value: never): never {
+  throw new Error(`Unhandled block kind: ${JSON.stringify(value)}`);
 }

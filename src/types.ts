@@ -56,3 +56,32 @@ export type ExtractResult = {
   payload: unknown;
   metadata?: Record<string, unknown>;
 };
+
+export type DebugFetchSnapshot = Omit<FetchResult, "html">;
+
+export type DebugExtractSnapshot =
+  | {
+      status: "success";
+      result: ExtractResult;
+    }
+  | {
+      status: "error";
+      stage: "extract" | "normalize" | "render";
+      error: {
+        name: string;
+        message: string;
+      };
+    };
+
+export type DebugArtifactPayload = {
+  fetch: DebugFetchSnapshot;
+  extract: DebugExtractSnapshot;
+};
+
+export type PipelineArtifacts = {
+  options: CliOptions;
+  fetchResult: FetchResult;
+  extractResult: ExtractResult;
+  transcript: ExportTranscript;
+  markdown: string;
+};

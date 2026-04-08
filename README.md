@@ -6,17 +6,26 @@ The project is intentionally narrow. It is meant for short, valuable threads you
 
 ## Status
 
-This project is in early planning and scaffolding.
+This project is past initial scaffolding and into implementation.
 
-The current goal for v1 is:
+What is implemented today:
 
-- accept a ChatGPT shared-link URL
-- fetch the shared-link snapshot
-- extract the conversation turns
-- render a readable Markdown transcript
-- write to stdout by default
-- optionally write to a local file
-- optionally write to a user-selected GitHub repo path
+- CLI argument parsing and validation
+- default stdout output routing
+- local debug artifact output via `--debug-html` and `--debug-json`
+- shared-link fetching with timeout and basic request hardening
+- pipeline staging for fetch, extract, normalize, render, and output routing
+- build/test packaging for the local CLI
+
+What is still ahead:
+
+- real fixture capture from shared-link pages
+- extractor implementation against committed fixtures
+- transcript normalization beyond the current stub
+- polished Markdown rendering for real threads
+- GitHub write mode
+
+Phases 0 through 4 of the implementation plan are complete. The next planned step is fixture capture and extractor work.
 
 ## Design Principles
 

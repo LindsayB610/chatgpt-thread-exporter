@@ -1,5 +1,4 @@
 import type { CliOptions } from "../types.js";
-import { isAbsolute, posix, sep } from "node:path";
 
 export function parseArgs(argv: string[]): CliOptions {
   const options: CliOptions = { url: "" };
@@ -115,14 +114,6 @@ function validateLocalPath(path: string | undefined, flag: string): void {
   if (path === "." || path === "..") {
     throw new Error(`${flag} must point to a file, not a directory`);
   }
-
-  if (isAbsolute(path)) {
-    return;
-  }
-
-  if (path.split(sep).join(posix.sep).startsWith("./")) {
-    return;
-  }
 }
 
 function validateRepoPath(repoPath: string): void {
@@ -130,8 +121,16 @@ function validateRepoPath(repoPath: string): void {
     throw new Error("--repo-path requires a non-empty repository-relative file path");
   }
 
-  if (repoPath.startsWith("/")) {
+  if (repoPath.startsWith("/") || /^[A-Za-z]:[\\/]/.test(repoPath)) {
     throw new Error("--repo-path must be repository-relative");
+  }
+
+  if (repoPath.includes("\\")) {
+    throw new Error("--repo-path must use forward slashes");
+  }
+
+  if (repoPath.includes("//")) {
+    throw new Error("--repo-path must not contain repeated slashes");
   }
 
   if (repoPath.endsWith("/")) {
