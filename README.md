@@ -16,8 +16,8 @@ What is implemented today:
 - local debug artifact output via `--debug-html` and `--debug-json`
 - shared-link fetching with timeout and basic request hardening
 - fixture capture and fixture-backed parser support
-- extractor implementation for current streamed shared-link metadata and synthetic fixture payloads
-- transcript normalization for saved message-tree fixtures, with explicit fallbacks for metadata-only payloads
+- extractor support for current streamed shared-link pages, including live text-message extraction
+- transcript normalization for extracted conversation turns and saved fixture payloads
 - polished Markdown rendering with deterministic golden tests
 - pipeline staging for fetch, extract, normalize, render, and output routing
 - build/test packaging for the local CLI
@@ -25,9 +25,10 @@ What is implemented today:
 What is still ahead:
 
 - GitHub write mode
+- filtering and cleanup for more system/internal share-page artifacts in some live exports
 - broader live-shape compatibility hardening over time
 
-Phases 0 through 10 of the implementation plan are complete. The local-only exporter is now at the first release-candidate milestone described by the plan.
+Phases 0 through 10 of the implementation plan are complete. The local-only exporter now works on real tested shared links, but live-share cleanup and GitHub export are still in progress.
 
 ## Design Principles
 
@@ -85,8 +86,9 @@ The tool should never default to writing exported conversations into its own sou
 ## Limitations
 
 - The exporter depends on the current ChatGPT shared-link page shape.
-- It is designed first for short, mostly text-based threads.
+- It is designed first for mostly text-based threads.
 - Rich content may be represented as placeholders rather than perfectly preserved.
+- Some live exports may still include internal/system artifacts that should be filtered more cleanly.
 - This is not intended to be a lossless archival platform.
 
 ## Open Source

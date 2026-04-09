@@ -63,6 +63,33 @@ describe("extractConversationPayload fixture targets", () => {
     });
   });
 
+  it("extracts real message parts from a streamed share payload", () => {
+    const html = `
+      <script>
+        window.__reactRouterContext.streamController.enqueue(
+          "[\\"sharedConversationId\\",\\"sample-share-id\\",\\"title\\",\\"Sample Stream Thread\\",\\"linear_conversation\\",[8,23],\\"id\\",\\"message\\",{\\"_6\\":9,\\"_7\\":10},\\"message-user\\",{\\"_11\\":12,\\"_13\\":14,\\"_15\\":16},\\"author\\",{\\"_17\\":18},\\"content\\",{\\"_19\\":20,\\"_21\\":22},\\"metadata\\",{},\\"role\\",\\"user\\",\\"content_type\\",\\"text\\",\\"parts\\",[\\"Hello from the user\\"],{\\"_6\\":24,\\"_7\\":25},\\"message-assistant\\",{\\"_11\\":26,\\"_13\\":27,\\"_15\\":16},{\\"_17\\":28},{\\"_19\\":20,\\"_21\\":29},\\"assistant\\",[\\"Hello from the assistant\\"]]"
+        );
+      </script>
+    `;
+
+    const result = extractConversationPayload(html);
+    const payload = asRecord(result.payload);
+
+    expect(payload.transport).toBe("react-router-stream");
+    expect(payload.messages).toMatchObject([
+      {
+        id: "message-user",
+        role: "user",
+        parts: [{ type: "text", text: "Hello from the user" }]
+      },
+      {
+        id: "message-assistant",
+        role: "assistant",
+        parts: [{ type: "text", text: "Hello from the assistant" }]
+      }
+    ]);
+  });
+
   it("prefers metadata from the share payload region over earlier decoy keys", () => {
     const html = `
       <script>

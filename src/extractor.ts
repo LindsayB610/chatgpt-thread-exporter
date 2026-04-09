@@ -21,10 +21,13 @@ export function extractConversationPayload(html: string): ExtractResult {
 }
 
 function extractReactRouterStreamPayload(html: string): ExtractResult | null {
-  const decodedStream = extractReactRouterDecodedStream(html);
-  if (!decodedStream) {
+  const decodedChunks = extractReactRouterDecodedChunks(html);
+  if (decodedChunks.length === 0) {
     return null;
   }
+
+  const decodedStream = decodedChunks.join("\n");
+  const firstJsonChunk = decodedChunks.find((chunk) => chunk.trim().startsWith("["));
 
   const sharedConversationId = requireMatch(
     decodedStream,
@@ -34,12 +37,15 @@ function extractReactRouterStreamPayload(html: string): ExtractResult | null {
   const shareRegion = narrowToShareRegion(decodedStream);
   const shareTail = narrowToShareTail(decodedStream);
   const title = requireLastMatch(shareRegion, /"title","([^"]+)"/gu, "stream title");
+  const messages = firstJsonChunk ? extractReactRouterMessages(firstJsonChunk) : [];
 
   return {
     payload: {
       transport: "react-router-stream",
       title,
       sharedConversationId,
+      messages,
+      isPartial: false,
       continueConversationUrl: optionalMatch(
         shareTail,
         /"continue_conversation_url","([^"]+)"/u
@@ -53,7 +59,7 @@ function extractReactRouterStreamPayload(html: string): ExtractResult | null {
     metadata: {
       strategy: "react-router-stream-regex",
       streamLength: decodedStream.length,
-      chunkCount: countReactRouterStreamChunks(html)
+      chunkCount: decodedChunks.length
     }
   };
 }
@@ -165,7 +171,7 @@ function decodeJavaScriptStringLiteral(value: string): string {
   }
 }
 
-function extractReactRouterDecodedStream(html: string): string | null {
+function extractReactRouterDecodedChunks(html: string): string[] {
   const needle = "window.__reactRouterContext.streamController.enqueue(";
   let searchIndex = 0;
   const decodedChunks: string[] = [];
@@ -190,29 +196,7 @@ function extractReactRouterDecodedStream(html: string): string | null {
     searchIndex = parsed.nextIndex;
   }
 
-  if (decodedChunks.length === 0) {
-    return null;
-  }
-
-  return decodedChunks.join("\n");
-}
-
-function countReactRouterStreamChunks(html: string): number {
-  const needle = "window.__reactRouterContext.streamController.enqueue(";
-  let count = 0;
-  let searchIndex = 0;
-
-  while (searchIndex < html.length) {
-    const start = html.indexOf(needle, searchIndex);
-    if (start === -1) {
-      break;
-    }
-
-    count += 1;
-    searchIndex = start + needle.length;
-  }
-
-  return count;
+  return decodedChunks;
 }
 
 function narrowToShareRegion(decodedStream: string): string {
@@ -231,6 +215,155 @@ function narrowToShareTail(decodedStream: string): string {
   }
 
   return decodedStream.slice(sharedConversationIndex);
+}
+
+function extractReactRouterMessages(streamJson: string): Array<{
+  id: string;
+  role: string;
+  parts: Array<{ type: string; text?: string; language?: string; name?: string; mimeType?: string; url?: string }>;
+}> {
+  let chunk: unknown;
+
+  try {
+    chunk = JSON.parse(streamJson);
+  } catch (error) {
+    throw new Error(
+      `Found React Router stream payload but its main JSON chunk could not be parsed: ${getErrorMessage(error)}`
+    );
+  }
+
+  if (!Array.isArray(chunk)) {
+    return [];
+  }
+
+  const linearConversationIndex = chunk.indexOf("linear_conversation");
+  if (linearConversationIndex === -1 || !Array.isArray(chunk[linearConversationIndex + 1])) {
+    return [];
+  }
+
+  const nodeIndexes = chunk[linearConversationIndex + 1] as unknown[];
+  const messages: Array<{
+    id: string;
+    role: string;
+    parts: Array<{ type: string; text?: string; language?: string; name?: string; mimeType?: string; url?: string }>;
+  }> = [];
+
+  for (const nodeIndex of nodeIndexes) {
+    if (typeof nodeIndex !== "number") {
+      continue;
+    }
+
+    const node = asRecord(resolveReactRouterReference(chunk, nodeIndex));
+    const message = asRecord(node.message);
+    const author = asRecord(message.author);
+    const role = author.role;
+
+    if (typeof role !== "string" || !["user", "assistant", "system", "tool"].includes(role)) {
+      continue;
+    }
+
+    const content = asRecord(message.content);
+    const contentType = content.content_type;
+    const rawParts = Array.isArray(content.parts) ? content.parts : [];
+    const parts = normalizeReactRouterContentParts(contentType, rawParts);
+
+    messages.push({
+      id:
+        typeof message.id === "string"
+          ? message.id
+          : typeof node.id === "string"
+            ? node.id
+            : `message-${nodeIndex}`,
+      role,
+      parts
+    });
+  }
+
+  return messages.filter((message) => message.parts.length > 0);
+}
+
+function normalizeReactRouterContentParts(
+  contentType: unknown,
+  rawParts: unknown[]
+): Array<{ type: string; text?: string; language?: string; name?: string; mimeType?: string; url?: string }> {
+  if (contentType === "text") {
+    return rawParts
+      .filter((part): part is string => typeof part === "string")
+      .filter((text) => text.trim().length > 0)
+      .map((text) => ({
+        type: "text",
+        text
+      }));
+  }
+
+  return [
+    {
+      type: typeof contentType === "string" ? contentType : "unknown"
+    }
+  ];
+}
+
+function resolveReactRouterReference(chunk: unknown[], reference: unknown): unknown {
+  return resolveReactRouterValue(chunk, reference, new Map());
+}
+
+function resolveReactRouterValue(
+  chunk: unknown[],
+  value: unknown,
+  memo: Map<number, unknown>
+): unknown {
+  if (typeof value === "number") {
+    if (value === -5) {
+      return null;
+    }
+
+    if (value >= 0 && value < chunk.length) {
+      if (memo.has(value)) {
+        return memo.get(value);
+      }
+
+      memo.set(value, null);
+      const target = chunk[value];
+      const resolved = resolveReactRouterValue(chunk, target, memo);
+      memo.set(value, resolved);
+      return resolved;
+    }
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => resolveReactRouterValue(chunk, item, memo));
+  }
+
+  if (value !== null && typeof value === "object") {
+    const output: Record<string, unknown> = {};
+
+    for (const [rawKey, rawValue] of Object.entries(value)) {
+      const key = decodeReactRouterObjectKey(chunk, rawKey);
+      output[key] = resolveReactRouterValue(chunk, rawValue, memo);
+    }
+
+    return output;
+  }
+
+  return value;
+}
+
+function decodeReactRouterObjectKey(chunk: unknown[], rawKey: string): string {
+  if (rawKey.startsWith("_")) {
+    const keyIndex = Number(rawKey.slice(1));
+    if (Number.isInteger(keyIndex) && keyIndex >= 0 && keyIndex < chunk.length) {
+      const resolvedKey = chunk[keyIndex];
+      if (typeof resolvedKey === "string") {
+        return resolvedKey;
+      }
+    }
+  }
+
+  return rawKey;
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value !== null && typeof value === "object" ? (value as Record<string, unknown>) : {};
 }
 
 function readQuotedJavaScriptString(
