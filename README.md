@@ -23,7 +23,7 @@ npm install
 Export a shared conversation:
 
 ```bash
-npm run dev -- --url "https://chatgpt.com/share/69d7d865-ae4c-83e8-ac85-06b3a111208d"
+npm run dev -- --url "https://chatgpt.com/share/69d82f78-1d20-83e8-bcbe-4bcf9675203b"
 ```
 
 That saves a Markdown file into your `Downloads` folder automatically.
@@ -46,12 +46,12 @@ The filename is based on the thread title and ends with `-export.md`.
 Examples:
 
 - `raccoon-city-design-export.md`
-- `moon-explainer-export.md`
+- `artemis-program-explained-export.md`
 
 If that filename already exists, the tool automatically picks a unique name like:
 
 - `raccoon-city-design-export-2.md`
-- `raccoon-city-design-export-3.md`
+- `artemis-program-explained-export-2.md`
 
 ## Common Commands
 
@@ -64,19 +64,19 @@ npm run dev -- --url "https://chatgpt.com/share/69d7d865-ae4c-83e8-ac85-06b3a111
 Print Markdown in Terminal instead of saving a file:
 
 ```bash
-npm run dev -- --url "https://chatgpt.com/share/69d7d865-ae4c-83e8-ac85-06b3a111208d" --stdout
+npm run dev -- --url "https://chatgpt.com/share/69d82f78-1d20-83e8-bcbe-4bcf9675203b" --stdout
 ```
 
 Save to a specific file path:
 
 ```bash
-npm run dev -- --url "https://chatgpt.com/share/69d7d865-ae4c-83e8-ac85-06b3a111208d" --out "/Users/lindsaybrunner/Downloads/raccoon-city-design.md"
+npm run dev -- --url "https://chatgpt.com/share/69d82f78-1d20-83e8-bcbe-4bcf9675203b" --out "/Users/lindsaybrunner/Downloads/artemis-program-explained.md"
 ```
 
 Overwrite a specific file you already chose:
 
 ```bash
-npm run dev -- --url "https://chatgpt.com/share/69d7d865-ae4c-83e8-ac85-06b3a111208d" --out "/Users/lindsaybrunner/Downloads/raccoon-city-design.md" --force
+npm run dev -- --url "https://chatgpt.com/share/69d82f78-1d20-83e8-bcbe-4bcf9675203b" --out "/Users/lindsaybrunner/Downloads/artemis-program-explained.md" --force
 ```
 
 Save a PDF to a specific file path:
@@ -137,7 +137,7 @@ You do not need this for normal use.
 Only use debug files if a thread exports strangely and you want to inspect what the tool fetched and parsed:
 
 ```bash
-npm run dev -- --url "https://chatgpt.com/share/69d7d865-ae4c-83e8-ac85-06b3a111208d" --out "/Users/lindsaybrunner/Downloads/raccoon-city-design.md" --debug-html "/Users/lindsaybrunner/Downloads/raccoon-city-design-debug.html" --debug-json "/Users/lindsaybrunner/Downloads/raccoon-city-design-debug.json"
+npm run dev -- --url "https://chatgpt.com/share/69d82f78-1d20-83e8-bcbe-4bcf9675203b" --out "/Users/lindsaybrunner/Downloads/artemis-program-explained.md" --debug-html "/Users/lindsaybrunner/Downloads/artemis-program-explained-debug.html" --debug-json "/Users/lindsaybrunner/Downloads/artemis-program-explained-debug.json"
 ```
 
 ## What It Does Today

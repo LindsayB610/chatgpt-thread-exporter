@@ -1,4 +1,10 @@
+import { marked } from "marked";
 import type { AttachmentReference, ExportBlock, ExportTranscript, ExportTurn } from "../types.js";
+
+marked.setOptions({
+  gfm: true,
+  breaks: true
+});
 
 export function renderChatGptHtml(transcript: ExportTranscript): string {
   return [
@@ -50,7 +56,7 @@ function renderTurn(turn: ExportTurn): string {
 function renderBlock(block: ExportBlock): string {
   switch (block.kind) {
     case "text":
-      return `<div class="block block-text">${renderTextParagraphs(block.text)}</div>`;
+      return `<div class="block block-text markdown-content">${renderMarkdownText(block.text)}</div>`;
     case "code":
       return [
         '<section class="block block-code">',
@@ -61,7 +67,7 @@ function renderBlock(block: ExportBlock): string {
         .filter(Boolean)
         .join("\n");
     case "quote":
-      return `<blockquote class="block block-quote">${renderTextParagraphs(block.text)}</blockquote>`;
+      return `<blockquote class="block block-quote">${renderMarkdownText(block.text)}</blockquote>`;
     case "list":
       return [
         '<ul class="block block-list">',
@@ -108,11 +114,9 @@ function renderAttachments(attachments?: AttachmentReference[]): string {
   ].join("\n");
 }
 
-function renderTextParagraphs(text: string): string {
-  return text
-    .split(/\n{2,}/)
-    .map((paragraph) => `<p>${escapeHtml(paragraph).replace(/\n/g, "<br />")}</p>`)
-    .join("\n");
+function renderMarkdownText(text: string): string {
+  const safeMarkdown = escapeHtml(text);
+  return marked.parse(safeMarkdown) as string;
 }
 
 function labelForRole(role: ExportTurn["role"]): string {
@@ -205,7 +209,7 @@ body {
 .conversation-thread {
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 22px;
 }
 
 .turn {
@@ -235,6 +239,7 @@ body {
 
 .turn-content {
   padding: 0;
+  min-width: 0;
 }
 
 .turn-label {
@@ -254,14 +259,76 @@ body {
   margin-bottom: 0;
 }
 
-.block-text p,
-.block-quote p {
-  margin: 0 0 14px;
+.markdown-content > *:first-child {
+  margin-top: 0;
 }
 
-.block-text p:last-child,
-.block-quote p:last-child {
+.markdown-content > *:last-child {
   margin-bottom: 0;
+}
+
+.block-text p,
+.block-quote p {
+  margin: 0 0 10px;
+}
+
+.block-text h1,
+.block-text h2,
+.block-text h3,
+.block-text h4,
+.block-text h5,
+.block-text h6,
+.block-quote h1,
+.block-quote h2,
+.block-quote h3,
+.block-quote h4,
+.block-quote h5,
+.block-quote h6 {
+  margin: 18px 0 10px;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.block-text h1,
+.block-quote h1 {
+  font-size: 28px;
+}
+
+.block-text h2,
+.block-quote h2 {
+  font-size: 22px;
+}
+
+.block-text h3,
+.block-quote h3 {
+  font-size: 18px;
+}
+
+.block-text ul,
+.block-text ol,
+.block-quote ul,
+.block-quote ol {
+  margin: 8px 0 12px;
+  padding-left: 24px;
+}
+
+.block-text li,
+.block-quote li,
+.block-list li,
+.attachments-list li {
+  margin: 0 0 4px;
+}
+
+.block-text hr,
+.block-quote hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 18px 0;
+}
+
+.block-text strong,
+.block-quote strong {
+  font-weight: 700;
 }
 
 .block-code {
@@ -352,10 +419,52 @@ body {
     width: 100%;
   }
 
-  .turn,
+  .turn-user,
   .block-code,
   .block-unknown {
     break-inside: avoid;
+  }
+
+  .conversation-thread {
+    gap: 16px;
+  }
+
+  .turn-bubble {
+    padding: 18px 20px;
+  }
+
+  .block {
+    margin-bottom: 14px;
+  }
+
+  .block-text p,
+  .block-quote p {
+    margin-bottom: 8px;
+  }
+
+  .block-text h1,
+  .block-text h2,
+  .block-text h3,
+  .block-text h4,
+  .block-text h5,
+  .block-text h6,
+  .block-quote h1,
+  .block-quote h2,
+  .block-quote h3,
+  .block-quote h4,
+  .block-quote h5,
+  .block-quote h6 {
+    margin: 14px 0 8px;
+  }
+
+  .block-text ul,
+  .block-text ol,
+  .block-quote ul,
+  .block-quote ol,
+  .block-list,
+  .attachments-list {
+    margin-top: 6px;
+    margin-bottom: 10px;
   }
 }
 `.trim();

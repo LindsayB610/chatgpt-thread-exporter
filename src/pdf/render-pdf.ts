@@ -22,10 +22,13 @@ export async function renderPdf(transcript: ExportTranscript): Promise<Uint8Arra
       format: "Letter",
       printBackground: true,
       preferCSSPageSize: true,
+      displayHeaderFooter: true,
+      headerTemplate: "<div></div>",
+      footerTemplate: pdfFooterTemplate(),
       margin: {
         top: "16mm",
         right: "14mm",
-        bottom: "18mm",
+        bottom: "20mm",
         left: "14mm"
       }
     });
@@ -38,4 +41,12 @@ export async function renderPdf(transcript: ExportTranscript): Promise<Uint8Arra
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function pdfFooterTemplate(): string {
+  return `
+    <div style="width:100%; padding:0 14mm; font-family:Arial, sans-serif; font-size:10px; color:#6b7280; text-align:center;">
+      <span class="pageNumber"></span> / <span class="totalPages"></span>
+    </div>
+  `.trim();
 }

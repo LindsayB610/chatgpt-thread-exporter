@@ -36,6 +36,32 @@ describe("renderChatGptHtml", () => {
     expect(html).toContain("Planning a neighborhood potluck");
   });
 
+  it("renders markdown headings and lists as real HTML instead of raw markdown text", () => {
+    const html = renderChatGptHtml({
+      sourceUrl: "https://chatgpt.com/share/example",
+      finalUrl: "https://chatgpt.com/share/example",
+      exportedAt: "2026-04-09T00:00:00.000Z",
+      title: "Markdown Rendering Test",
+      turns: [
+        {
+          id: "assistant-1",
+          role: "assistant",
+          blocks: [
+            {
+              kind: "text",
+              text: "## Section Heading\n\n- first item\n- second item"
+            }
+          ]
+        }
+      ]
+    });
+
+    expect(html).toContain("<h2>Section Heading</h2>");
+    expect(html).toContain("<li>first item</li>");
+    expect(html).toContain("<li>second item</li>");
+    expect(html).not.toContain("## Section Heading");
+  });
+
   it("renders code blocks, unknown blocks, and attachments in dedicated surfaces", () => {
     const transcript = normalizeTranscript(
       fetchResult,

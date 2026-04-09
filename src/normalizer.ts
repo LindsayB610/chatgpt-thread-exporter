@@ -25,7 +25,7 @@ function normalizeTurns(
   const messages = asMessageArray(payload.messages);
   if (messages.length > 0) {
     const turns = messages
-      .map((message) => normalizeMessageTurn(message))
+      .map((message, index, allMessages) => normalizeMessageTurn(message, index, allMessages))
       .filter((turn): turn is NonNullable<typeof turn> => turn !== null);
 
     if (payload.isPartial === true) {
@@ -70,8 +70,12 @@ function normalizeTurns(
   ];
 }
 
-function normalizeMessageTurn(message: MessageRecord): ExportTranscript["turns"][number] | null {
-  if (shouldDropArtifactMessage(message)) {
+function normalizeMessageTurn(
+  message: MessageRecord,
+  index: number,
+  allMessages: MessageRecord[]
+): ExportTranscript["turns"][number] | null {
+  if (shouldDropArtifactMessage(message, index, allMessages)) {
     return null;
   }
 
@@ -219,14 +223,27 @@ function asMessageArray(value: unknown): MessageRecord[] {
 }
 
 function isKnownArtifactText(text: string): boolean {
-  return text === "Original custom instructions no longer available";
+  return (
+    text === "Original custom instructions no longer available" ||
+    text === "The output of this plugin was redacted."
+  );
 }
 
 function isInternalOnlyPartType(type: string): boolean {
-  return type === "model_editable_context";
+  return type === "model_editable_context" || type === "thoughts" || type === "reasoning_recap";
 }
 
-function shouldDropArtifactMessage(message: MessageRecord): boolean {
+function shouldDropArtifactMessage(
+  message: MessageRecord,
+  index: number,
+  allMessages: MessageRecord[]
+): boolean {
+  return (
+    isSinglePartArtifactMessage(message) || isTransientAssistantStatusMessage(message, index, allMessages)
+  );
+}
+
+function isSinglePartArtifactMessage(message: MessageRecord): boolean {
   return (
     message.parts.length === 1 &&
     ((message.parts[0]?.type === "text" &&
@@ -239,4 +256,26 @@ function shouldDropArtifactMessage(message: MessageRecord): boolean {
         !message.parts[0].mimeType &&
         !message.parts[0].url))
   );
+}
+
+function isTransientAssistantStatusMessage(
+  message: MessageRecord,
+  index: number,
+  allMessages: MessageRecord[]
+): boolean {
+  if (message.role !== "assistant" || message.parts.length !== 1 || message.parts[0]?.type !== "text") {
+    return false;
+  }
+
+  const text = typeof message.parts[0].text === "string" ? message.parts[0].text.trim() : "";
+  if (text.length === 0 || text.length > 280) {
+    return false;
+  }
+
+  if (!/^(I('|’)m|I am)\b/.test(text)) {
+    return false;
+  }
+
+  const nearbyMessages = allMessages.slice(index + 1, index + 3);
+  return nearbyMessages.some((nextMessage) => isSinglePartArtifactMessage(nextMessage));
 }

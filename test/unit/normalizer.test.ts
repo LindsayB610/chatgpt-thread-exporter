@@ -163,9 +163,34 @@ describe("normalizeTranscript", () => {
               parts: [{ type: "model_editable_context" }]
             },
             {
+              id: "artifact-thoughts",
+              role: "assistant",
+              parts: [{ type: "thoughts" }]
+            },
+            {
+              id: "artifact-reasoning-recap",
+              role: "assistant",
+              parts: [{ type: "reasoning_recap" }]
+            },
+            {
               id: "artifact-empty-code",
               role: "assistant",
               parts: [{ type: "code", text: "" }]
+            },
+            {
+              id: "artifact-redacted-tool-output",
+              role: "tool",
+              parts: [{ type: "text", text: "The output of this plugin was redacted." }]
+            },
+            {
+              id: "artifact-transient-status",
+              role: "assistant",
+              parts: [{ type: "text", text: "I’m tightening the draft before I answer." }]
+            },
+            {
+              id: "artifact-following-tool-output",
+              role: "tool",
+              parts: [{ type: "text", text: "The output of this plugin was redacted." }]
             },
             {
               id: "real-user",
