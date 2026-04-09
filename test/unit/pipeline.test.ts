@@ -8,6 +8,7 @@ import {
   runCli,
   type PipelineDependencies
 } from "../../src/pipeline.js";
+import { injectResolvedShareArtifacts } from "../../src/dom/share-dom-enrichment.js";
 import type { CliOptions, ExtractResult, FetchResult, PipelineArtifacts } from "../../src/types.js";
 
 const tempDirs: string[] = [];
@@ -49,6 +50,7 @@ function createDependencies(overrides: Partial<PipelineDependencies> = {}): Pipe
     }),
     renderMarkdown: vi.fn().mockReturnValue("# Fixture Thread\n"),
     renderPdf: vi.fn().mockResolvedValue(new Uint8Array([37, 80, 68, 70])),
+    resolveRenderedShareArtifacts: vi.fn().mockResolvedValue({ images: [], links: [] }),
     writeLocalFile: vi.fn().mockResolvedValue(undefined),
     writeGitHubFile: vi.fn().mockResolvedValue(undefined),
     stdoutWrite: vi.fn(),
@@ -156,6 +158,73 @@ describe("buildPipelineArtifacts", () => {
     expect(dependencies.renderMarkdown).not.toHaveBeenCalled();
     expect(artifacts.outputFormat).toBe("pdf");
     expect(artifacts.outputContent).toBeInstanceOf(Uint8Array);
+  });
+
+  it("enriches extracted image references with browser-resolved share image URLs", async () => {
+    const extracted = {
+      payload: {
+        transport: "react-router-stream",
+        messages: [
+          {
+            id: "tool-1",
+            role: "tool",
+            parts: [{ type: "image_reference", url: "sediment://file_123" }]
+          }
+        ]
+      }
+    } satisfies ExtractResult;
+
+    const dependencies = createDependencies({
+      extractConversationPayload: vi.fn().mockReturnValue(extracted),
+      resolveRenderedShareArtifacts: vi.fn().mockResolvedValue({
+        images: [
+          {
+            url: "https://example.com/generated-image.png",
+            alt: "Generated image: Example"
+          }
+        ],
+        links: []
+      }),
+      normalizeTranscript: vi.fn().mockImplementation((_fetchResult, extractResult) => ({
+        sourceUrl: "https://chatgpt.com/share/abc",
+        finalUrl: "https://chatgpt.com/share/abc",
+        exportedAt: "2026-04-08T00:00:00.000Z",
+        title: "Fixture Thread",
+        turns: [
+          {
+            id: "1",
+            role: "system",
+            blocks: [
+              {
+                kind: "unknown",
+                summary: JSON.stringify(
+                  injectResolvedShareArtifacts(extracted, {
+                    images: [
+                      {
+                        url: "https://example.com/generated-image.png",
+                        alt: "Generated image: Example"
+                      }
+                    ],
+                    links: []
+                  }).payload
+                )
+              }
+            ]
+          }
+        ]
+      }))
+    });
+
+    await buildPipelineArtifacts(
+      {
+        url: "https://chatgpt.com/share/abc"
+      },
+      dependencies
+    );
+
+    expect(dependencies.resolveRenderedShareArtifacts).toHaveBeenCalledWith(
+      "https://chatgpt.com/share/abc"
+    );
   });
 });
 

@@ -74,6 +74,15 @@ function renderBlock(block: ExportBlock): string {
       ]
         .filter(Boolean)
         .join("\n");
+    case "image":
+      return [
+        '<figure class="block block-image">',
+        `  <img src="${escapeHtml(block.url)}" alt="${escapeHtml(block.alt ?? "Generated image")}" />`,
+        block.alt ? `  <figcaption>${escapeHtml(block.alt)}</figcaption>` : "",
+        "</figure>"
+      ]
+        .filter(Boolean)
+        .join("\n");
     case "quote":
       return `<blockquote class="block block-quote">${renderMarkdownText(block.text)}</blockquote>`;
     case "list":
@@ -385,6 +394,26 @@ body {
   overflow: hidden;
 }
 
+.block-image {
+  margin: 0 0 18px;
+}
+
+.block-image img {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: #fff;
+}
+
+.block-image figcaption {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
 .code-language {
   margin: 0 0 10px;
   font-size: 12px;
@@ -465,11 +494,12 @@ body {
     width: 100%;
   }
 
-  .turn-user,
-  .block-code,
-  .block-unknown {
-    break-inside: avoid;
-  }
+      .turn-user,
+      .block-code,
+      .block-unknown,
+      .block-image {
+        break-inside: avoid;
+      }
 
   .conversation-thread {
     gap: 16px;

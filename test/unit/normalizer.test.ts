@@ -109,11 +109,12 @@ describe("normalizeTranscript", () => {
     const transcript = normalizeTranscript(fetchResult, extractResult, baseOptions);
     const assistantTurn = transcript.turns[1];
 
-    expect(assistantTurn.blocks).toContainEqual({
-      kind: "unknown",
-      rawType: "image_reference",
-      summary: "Unsupported content preserved as metadata: hero-shortlist-1.jpg"
-    });
+    expect(assistantTurn.blocks).toEqual([
+      {
+        kind: "text",
+        text: "The first image reads strongest because the subject has more separation from the background."
+      }
+    ]);
     expect(assistantTurn.metadata?.attachments).toContainEqual({
       name: "hero-shortlist-1.jpg",
       mimeType: "image/jpeg",
@@ -202,6 +203,163 @@ describe("normalizeTranscript", () => {
       {
         kind: "text",
         text: "A paragraph with a citation marker.\n\n## Heading After Citation"
+      }
+    ]);
+  });
+
+  it("strips inline file citation markers from text content", () => {
+    const transcript = normalizeTranscript(
+      fetchResult,
+      {
+        payload: {
+          transport: "react-router-stream",
+          title: "File Citation Cleanup Test",
+          messages: [
+            {
+              id: "assistant-1",
+              role: "assistant",
+              parts: [
+                {
+                  type: "text",
+                  text: "Turning rambles into structured outputs (updates, plans, comms) 〖filecite〗turn0file1〗"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      baseOptions
+    );
+
+    expect(transcript.turns[0]?.blocks).toEqual([
+      {
+        kind: "text",
+        text: "Turning rambles into structured outputs (updates, plans, comms)"
+      }
+    ]);
+  });
+
+  it("strips inline private-use file citation markers from text content", () => {
+    const transcript = normalizeTranscript(
+      fetchResult,
+      {
+        payload: {
+          transport: "react-router-stream",
+          title: "File Citation Cleanup Test",
+          messages: [
+            {
+              id: "assistant-1",
+              role: "assistant",
+              parts: [
+                {
+                  type: "text",
+                  text:
+                    "Turning rambles into structured outputs (updates, plans, comms) " +
+                    "\u{E200}filecite\u{E202}turn0file1\u{E201}"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      baseOptions
+    );
+
+    expect(transcript.turns[0]?.blocks).toEqual([
+      {
+        kind: "text",
+        text: "Turning rambles into structured outputs (updates, plans, comms)"
+      }
+    ]);
+  });
+
+  it("turns multimodal_text parts into readable text plus attachment metadata", () => {
+    const transcript = normalizeTranscript(
+      fetchResult,
+      {
+        payload: {
+          transport: "react-router-stream",
+          title: "Multimodal Text Test",
+          messages: [
+            {
+              id: "user-1",
+              role: "user",
+              parts: [
+                {
+                  type: "image_reference",
+                  name: "Screenshot 2026-04-07 at 7.33.13 AM.png",
+                  mimeType: "image/png",
+                  url: "sediment://file_123"
+                },
+                {
+                  type: "text",
+                  text: "I am not wrong; this keeps happening in new threads."
+                }
+              ]
+            }
+          ]
+        }
+      },
+      baseOptions
+    );
+
+    expect(transcript.turns).toMatchObject([
+      {
+        id: "user-1",
+        role: "user",
+        blocks: [{ kind: "text", text: "I am not wrong; this keeps happening in new threads." }],
+        metadata: {
+          attachments: [
+            {
+              name: "Screenshot 2026-04-07 at 7.33.13 AM.png",
+              mimeType: "image/png",
+              url: "sediment://file_123"
+            }
+          ]
+        }
+      }
+    ]);
+  });
+
+  it("turns tool image-reference messages into assistant image blocks when a real image URL is available", () => {
+    const transcript = normalizeTranscript(
+      fetchResult,
+      {
+        payload: {
+          transport: "react-router-stream",
+          title: "Generated Image Test",
+          messages: [
+            {
+              id: "tool-1",
+              role: "tool",
+              timestamp: "2026-04-08T13:00:00.000Z",
+              parts: [
+                {
+                  type: "image_reference",
+                  name: "Generated image: Friendly spaceship coloring page",
+                  url: "https://example.com/friendly-spaceship.png"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      baseOptions
+    );
+
+    expect(transcript.turns).toEqual([
+      {
+        id: "tool-1",
+        role: "assistant",
+        timestamp: "2026-04-08T13:00:00.000Z",
+        authorName: undefined,
+        blocks: [
+          {
+            kind: "image",
+            alt: "Generated image: Friendly spaceship coloring page",
+            url: "https://example.com/friendly-spaceship.png"
+          }
+        ]
       }
     ]);
   });

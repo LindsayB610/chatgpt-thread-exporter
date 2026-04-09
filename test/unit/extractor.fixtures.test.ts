@@ -90,6 +90,35 @@ describe("extractConversationPayload fixture targets", () => {
     ]);
   });
 
+  it("extracts readable text from multimodal_text stream messages while preserving attachments", () => {
+    const html = `
+      <script>
+        window.__reactRouterContext.streamController.enqueue(
+          "[\\"sharedConversationId\\",\\"sample-share-id\\",\\"title\\",\\"Sample Stream Thread\\",\\"linear_conversation\\",[8],\\"id\\",\\"message\\",{\\"_6\\":9,\\"_7\\":10},\\"message-user\\",{\\"_11\\":12,\\"_13\\":14,\\"_15\\":16},\\"author\\",{\\"_17\\":18},\\"content\\",{\\"_19\\":20,\\"_21\\":22},\\"metadata\\",{},\\"role\\",\\"user\\",\\"content_type\\",\\"multimodal_text\\",\\"parts\\",[\\"Look at this screenshot\\",{\\"_23\\":24,\\"_25\\":26,\\"_27\\":28}],\\"asset_pointer\\",\\"sediment://file_123\\",\\"mime_type\\",\\"image/png\\",\\"name\\",\\"example.png\\"]"
+        );
+      </script>
+    `;
+
+    const result = extractConversationPayload(html);
+    const payload = asRecord(result.payload);
+
+    expect(payload.messages).toMatchObject([
+      {
+        id: "message-user",
+        role: "user",
+        parts: [
+          { type: "text", text: "Look at this screenshot" },
+          {
+            type: "image_reference",
+            name: "example.png",
+            mimeType: "image/png",
+            url: "sediment://file_123"
+          }
+        ]
+      }
+    ]);
+  });
+
   it("prefers metadata from the share payload region over earlier decoy keys", () => {
     const html = `
       <script>

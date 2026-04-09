@@ -1,6 +1,7 @@
 export type ExportBlock =
   | { kind: "text"; text: string }
   | { kind: "code"; text: string; language?: string }
+  | { kind: "image"; url: string; alt?: string }
   | { kind: "quote"; text: string }
   | { kind: "list"; items: string[] }
   | { kind: "unknown"; rawType?: string; summary: string };

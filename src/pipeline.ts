@@ -14,6 +14,11 @@ import { extractConversationPayload } from "./extractor.js";
 import { normalizeTranscript } from "./normalizer.js";
 import { renderMarkdown } from "./renderer.js";
 import { renderPdf } from "./pdf/render-pdf.js";
+import {
+  hasDomEnrichableParts,
+  injectResolvedShareArtifacts,
+  resolveRenderedShareArtifacts
+} from "./dom/share-dom-enrichment.js";
 import { writeLocalFile } from "./writers/local.js";
 import { writeGitHubFile } from "./writers/github.js";
 
@@ -35,6 +40,7 @@ export type PipelineDependencies = {
   normalizeTranscript: typeof normalizeTranscript;
   renderMarkdown: typeof renderMarkdown;
   renderPdf: typeof renderPdf;
+  resolveRenderedShareArtifacts: typeof resolveRenderedShareArtifacts;
   writeLocalFile: typeof writeLocalFile;
   writeGitHubFile: typeof writeGitHubFile;
   stdoutWrite: (chunk: string) => void;
@@ -46,6 +52,7 @@ export const defaultPipelineDependencies: PipelineDependencies = {
   normalizeTranscript,
   renderMarkdown,
   renderPdf,
+  resolveRenderedShareArtifacts,
   writeLocalFile,
   writeGitHubFile,
   stdoutWrite: (chunk: string) => {
@@ -92,7 +99,12 @@ export async function buildPipelineArtifacts(
   options: CliOptions,
   dependencies: Pick<
     PipelineDependencies,
-    "fetchSharedLink" | "extractConversationPayload" | "normalizeTranscript" | "renderMarkdown" | "renderPdf"
+    | "fetchSharedLink"
+    | "extractConversationPayload"
+    | "normalizeTranscript"
+    | "renderMarkdown"
+    | "renderPdf"
+    | "resolveRenderedShareArtifacts"
   > = defaultPipelineDependencies
 ): Promise<PipelineArtifacts> {
   const fetchResult = await dependencies.fetchSharedLink(options.url);
@@ -104,7 +116,11 @@ export async function buildPipelineArtifactsFromFetchResult(
   fetchResult: FetchResult,
   dependencies: Pick<
     PipelineDependencies,
-    "extractConversationPayload" | "normalizeTranscript" | "renderMarkdown" | "renderPdf"
+    | "extractConversationPayload"
+    | "normalizeTranscript"
+    | "renderMarkdown"
+    | "renderPdf"
+    | "resolveRenderedShareArtifacts"
   > = defaultPipelineDependencies
 ): Promise<PipelineArtifacts> {
   let extractResult: ExtractResult;
@@ -112,6 +128,18 @@ export async function buildPipelineArtifactsFromFetchResult(
     extractResult = dependencies.extractConversationPayload(fetchResult.html);
   } catch (error: unknown) {
     throw new PipelineStageError("extract", error);
+  }
+
+  if (
+    "resolveRenderedShareArtifacts" in dependencies &&
+    hasDomEnrichableParts(extractResult)
+  ) {
+    try {
+      const artifacts = await dependencies.resolveRenderedShareArtifacts(fetchResult.finalUrl);
+      extractResult = injectResolvedShareArtifacts(extractResult, artifacts);
+    } catch {
+      // Best-effort enrichment for visible share artifacts.
+    }
   }
 
   let transcript: ExportTranscript;

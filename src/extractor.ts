@@ -318,6 +318,53 @@ function normalizeReactRouterContentParts(
       }));
   }
 
+  if (contentType === "multimodal_text") {
+    const parts: Array<{
+      type: string;
+      text?: string;
+      language?: string;
+      name?: string;
+      mimeType?: string;
+      url?: string;
+    }> = [];
+
+    for (const part of rawParts) {
+      if (typeof part === "string" && part.trim().length > 0) {
+        parts.push({
+          type: "text",
+          text: part
+        });
+        continue;
+      }
+
+      const record = asRecord(part);
+      const url =
+        typeof record.asset_pointer === "string"
+          ? record.asset_pointer
+          : typeof record.url === "string"
+            ? record.url
+            : undefined;
+      const mimeType =
+        typeof record.mime_type === "string"
+          ? record.mime_type
+          : typeof record.mimeType === "string"
+            ? record.mimeType
+            : undefined;
+      const name = typeof record.name === "string" ? record.name : undefined;
+
+      if (url || mimeType || name) {
+        parts.push({
+          type: "image_reference",
+          name,
+          mimeType,
+          url
+        });
+      }
+    }
+
+    return parts;
+  }
+
   return [
     {
       type: typeof contentType === "string" ? contentType : "unknown"

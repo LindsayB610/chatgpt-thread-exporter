@@ -57,6 +57,8 @@ function renderBlock(block: ExportBlock): string[] {
       return block.items.map((item) => `- ${item}`);
     case "code":
       return [`\`\`\`${block.language ?? ""}`, block.text, "```"];
+    case "image":
+      return [`![${block.alt ?? "Generated image"}](${block.url})`];
     case "unknown":
       return [
         `> [!NOTE]`,

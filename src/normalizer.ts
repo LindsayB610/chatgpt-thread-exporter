@@ -79,6 +79,11 @@ function normalizeMessageTurn(
     return null;
   }
 
+  const generatedImageTurn = normalizeGeneratedImageTurn(message);
+  if (generatedImageTurn) {
+    return generatedImageTurn;
+  }
+
   const attachments: Array<{ name?: string; mimeType?: string; url?: string }> = [];
   const blocks = message.parts.flatMap((part) => normalizePart(part, attachments));
 
@@ -93,6 +98,38 @@ function normalizeMessageTurn(
     timestamp: message.timestamp,
     authorName: message.authorName,
     metadata: attachments.length > 0 ? { attachments } : undefined
+  };
+}
+
+function normalizeGeneratedImageTurn(
+  message: MessageRecord
+): ExportTranscript["turns"][number] | null {
+  if (message.role !== "tool") {
+    return null;
+  }
+
+  if (message.parts.length === 0 || message.parts.some((part) => part.type !== "image_reference")) {
+    return null;
+  }
+
+  const blocks = message.parts
+    .filter((part) => typeof part.url === "string" && /^https?:\/\//.test(part.url))
+    .map((part) => ({
+      kind: "image" as const,
+      url: part.url as string,
+      alt: part.name ?? "Generated image"
+    }));
+
+  if (blocks.length === 0) {
+    return null;
+  }
+
+  return {
+    id: message.id,
+    role: "assistant",
+    blocks,
+    timestamp: message.timestamp,
+    authorName: message.authorName
   };
 }
 
@@ -115,6 +152,13 @@ function normalizePart(
           language: typeof part.language === "string" ? part.language : undefined
         }
       ];
+    case "image_reference":
+      attachments.push({
+        name: part.name,
+        mimeType: part.mimeType,
+        url: part.url
+      });
+      return [];
     default:
       if (isInternalOnlyPartType(part.type) && !part.name && !part.mimeType && !part.url) {
         return [];
@@ -170,6 +214,8 @@ function normalizeRole(value: unknown): ExportTranscript["turns"][number]["role"
 function sanitizeTextPart(value: string): string {
   return value
     .replace(/cite.*?/g, "")
+    .replace(/filecite.*?/g, "")
+    .replace(/〖filecite〗turn\d+file\d+〗/gu, "")
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n");
 }

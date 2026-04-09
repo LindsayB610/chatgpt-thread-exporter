@@ -2,7 +2,7 @@
 
 `chatgpt-thread-exporter` is a local-first CLI that exports a ChatGPT shared link to a readable file you can keep.
 
-It is meant for short, valuable conversations you want to keep as a durable file you control.
+It is meant for conversations you want to keep as a durable file you control, whether that means Markdown for reference or a print-friendly PDF.
 
 ## Quick Start
 
@@ -20,7 +20,7 @@ Install dependencies once:
 npm install
 ```
 
-Export a shared conversation:
+Export a shared conversation as Markdown:
 
 ```bash
 npm run dev -- --url "https://chatgpt.com/share/69d82f78-1d20-83e8-bcbe-4bcf9675203b"
@@ -28,10 +28,15 @@ npm run dev -- --url "https://chatgpt.com/share/69d82f78-1d20-83e8-bcbe-4bcf9675
 
 That saves a Markdown file into your `Downloads` folder automatically.
 
-If you want a prettier, print-friendly PDF instead:
+If you want a prettier, print-friendly PDF instead, install the browser dependency once:
 
 ```bash
 npx playwright install chromium
+```
+
+Then export the same kind of shared conversation as a PDF:
+
+```bash
 npm run dev -- --url "https://chatgpt.com/share/69d7d865-ae4c-83e8-ac85-06b3a111208d" --format pdf
 ```
 
@@ -91,6 +96,22 @@ Show built-in help:
 npm run dev -- --help
 ```
 
+## Choosing Markdown vs PDF
+
+Use Markdown when you want:
+
+- a simple text file you can search, edit, or commit
+- the lightest-weight export
+- code-heavy threads in a plain, portable format
+
+Use PDF when you want:
+
+- something nicer to read or print
+- layout that feels more like the original ChatGPT conversation
+- image-heavy threads, where embedded images matter
+
+For image-heavy threads, PDF is usually the better format. Markdown can include remote image links, but those signed image URLs may expire later.
+
 ## GitHub Export
 
 GitHub export is now supported when you explicitly opt into it.
@@ -146,6 +167,7 @@ npm run dev -- --url "https://chatgpt.com/share/69d82f78-1d20-83e8-bcbe-4bcf9675
 - extracts live conversation text from current shared-link pages
 - renders readable Markdown with user and assistant turns
 - can also generate a ChatGPT-inspired, print-friendly PDF
+- can embed generated images into PDFs when they are visibly rendered on the shared page
 - saves locally by default
 - creates unique filenames automatically
 - supports explicit output paths with `--out`
@@ -155,8 +177,8 @@ npm run dev -- --url "https://chatgpt.com/share/69d82f78-1d20-83e8-bcbe-4bcf9675
 ## Current Limits
 
 - it depends on the current ChatGPT shared-link page shape
-- it is designed first for mostly text-based threads
-- rich content may still be represented as placeholders
+- some richer content still depends on what the shared page visibly renders
+- Markdown image links for generated images may expire over time
 - some live exports may still include internal or system artifacts that need more cleanup
 - GitHub export requires your own `GITHUB_TOKEN`
 - PDF export requires a local Playwright browser install

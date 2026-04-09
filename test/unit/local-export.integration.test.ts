@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { extractConversationPayload } from "../../src/extractor.js";
+import { resolveRenderedShareArtifacts } from "../../src/dom/share-dom-enrichment.js";
 import { normalizeTranscript } from "../../src/normalizer.js";
 import { runCli, type PipelineDependencies } from "../../src/pipeline.js";
 import { renderMarkdown } from "../../src/renderer.js";
@@ -55,6 +56,7 @@ function createDependencies(
     normalizeTranscript,
     renderMarkdown,
     renderPdf: overrides.renderPdf ?? renderPdf,
+    resolveRenderedShareArtifacts,
     writeLocalFile,
     writeGitHubFile: vi.fn().mockResolvedValue(undefined),
     stdoutWrite

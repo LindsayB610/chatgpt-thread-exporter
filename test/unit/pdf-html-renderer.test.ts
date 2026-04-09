@@ -73,10 +73,35 @@ describe("renderChatGptHtml", () => {
 
     const html = renderChatGptHtml(transcript);
 
-    expect(html).toContain('class="block block-unknown"');
-    expect(html).toContain("Unsupported content: image_reference");
+    expect(html).not.toContain('class="block block-unknown"');
     expect(html).toContain('class="turn-attachments"');
     expect(html).toContain("hero-shortlist-1.jpg");
+  });
+
+  it("renders image blocks as actual images", () => {
+    const html = renderChatGptHtml({
+      sourceUrl: "https://chatgpt.com/share/example",
+      finalUrl: "https://chatgpt.com/share/example",
+      exportedAt: "2026-04-09T00:00:00.000Z",
+      title: "Image Rendering Test",
+      turns: [
+        {
+          id: "assistant-1",
+          role: "assistant",
+          blocks: [
+            {
+              kind: "image",
+              alt: "Generated image: Friendly spaceship coloring page",
+              url: "https://example.com/friendly-spaceship.png"
+            }
+          ]
+        }
+      ]
+    });
+
+    expect(html).toContain('class="block block-image"');
+    expect(html).toContain('src="https://example.com/friendly-spaceship.png"');
+    expect(html).toContain("Generated image: Friendly spaceship coloring page");
   });
 
   it("tightens spacing for consecutive turns from the same role", () => {
