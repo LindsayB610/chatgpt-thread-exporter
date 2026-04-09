@@ -41,7 +41,7 @@ export function parseArgs(argv: string[]): CliOptions {
         options.force = true;
         break;
       default:
-        throw new Error(`Unknown argument: ${arg}`);
+        throw new Error(`Unknown argument: ${arg}. Run with the documented flags only.`);
     }
   }
 
@@ -82,7 +82,7 @@ function readValue(argv: string[], index: number, flag: string): string {
   const value = argv[index];
 
   if (!value || value.startsWith("--")) {
-    throw new Error(`Missing value for ${flag}`);
+    throw new Error(`Missing value for ${flag}. Expected a file path, URL, or string after the flag.`);
   }
 
   return value;

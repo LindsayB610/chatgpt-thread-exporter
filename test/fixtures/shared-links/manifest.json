@@ -1,0 +1,44 @@
+[
+  {
+    "id": "live-stream-thread",
+    "file": "live-stream-thread.fixture.html",
+    "origin": "live-derived",
+    "summary": "Sanitized current-generation share page using the streamed React router payload transport.",
+    "sanitization": "Derived from a real shared-link HTML capture. Title, message text, ids, timestamps, and URLs were rewritten while preserving transport markers and representative payload keys."
+  },
+  {
+    "id": "plain-text-thread",
+    "file": "plain-text-thread.fixture.html",
+    "origin": "synthetic",
+    "summary": "Minimal plain-text conversation payload.",
+    "sanitization": "All participant names and message text are fictionalized. DOM shape is reduced to parser-relevant elements."
+  },
+  {
+    "id": "code-block-thread",
+    "file": "code-block-thread.fixture.html",
+    "origin": "synthetic",
+    "summary": "Conversation payload that includes a fenced code block message part.",
+    "sanitization": "All code and message content are synthetic. Payload nesting mirrors a representative shared-link export shape."
+  },
+  {
+    "id": "rich-content-thread",
+    "file": "rich-content-thread.fixture.html",
+    "origin": "synthetic",
+    "summary": "Conversation payload with richer unsupported content metadata.",
+    "sanitization": "Attachment-style metadata is fictionalized while preserving a shape the extractor should degrade gracefully."
+  },
+  {
+    "id": "partial-thread",
+    "file": "partial-thread.fixture.html",
+    "origin": "synthetic",
+    "summary": "Conversation payload marked partial to drive placeholder handling later.",
+    "sanitization": "All content is fictionalized. Truncation markers are synthetic and included only to preserve parser scenarios."
+  },
+  {
+    "id": "malformed-missing-next-data",
+    "file": "malformed-missing-next-data.fixture.html",
+    "origin": "synthetic",
+    "summary": "Malformed page with no payload script.",
+    "sanitization": "Synthetic malformed fixture for negative-path extractor tests."
+  }
+]

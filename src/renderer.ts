@@ -14,6 +14,11 @@ export function renderMarkdown(transcript: ExportTranscript): string {
     for (const block of turn.blocks) {
       lines.push(...renderBlock(block), "");
     }
+
+    const attachmentLines = renderAttachments(turn.metadata?.attachments);
+    if (attachmentLines.length > 0) {
+      lines.push(...attachmentLines, "");
+    }
   }
 
   while (lines.length > 0 && lines[lines.length - 1] === "") {
@@ -30,17 +35,48 @@ function labelForRole(role: ExportTranscript["turns"][number]["role"]): string {
 function renderBlock(block: ExportBlock): string[] {
   switch (block.kind) {
     case "text":
-    case "quote":
       return [block.text];
+    case "quote":
+      return block.text.split("\n").map((line) => `> ${line}`);
     case "list":
       return block.items.map((item) => `- ${item}`);
     case "code":
       return [`\`\`\`${block.language ?? ""}`, block.text, "```"];
     case "unknown":
-      return [`[Unsupported content${block.rawType ? `: ${block.rawType}` : ""}] ${block.summary}`];
+      return [
+        `> [!NOTE]`,
+        `> Unsupported content${block.rawType ? `: ${block.rawType}` : ""}`,
+        `> ${block.summary}`
+      ];
     default:
       return assertNever(block);
   }
+}
+
+function renderAttachments(attachments?: ExportTranscript["turns"][number]["metadata"] extends infer Metadata
+  ? Metadata extends { attachments?: infer A }
+    ? A
+    : never
+  : never): string[] {
+  const usableAttachments = (attachments ?? []).filter(
+    (attachment) => attachment.name || attachment.mimeType || attachment.url
+  );
+
+  if (usableAttachments.length === 0) {
+    return [];
+  }
+
+  const lines = ["Attachments:"];
+
+  for (const attachment of usableAttachments) {
+    const details = [attachment.name, attachment.mimeType, attachment.url]
+      .filter(Boolean)
+      .join(" | ");
+
+    lines.push(`- ${details}`);
+  }
+
+  return lines;
 }
 
 function assertNever(value: never): never {

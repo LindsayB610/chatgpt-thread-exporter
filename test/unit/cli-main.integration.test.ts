@@ -18,7 +18,9 @@ describe("runCliMain integration", () => {
       }
     });
 
-    expect(stderrWrites).toEqual(["Missing value for --url\n"]);
+    expect(stderrWrites).toEqual([
+      "Missing value for --url. Expected a file path, URL, or string after the flag.\n"
+    ]);
     expect(exitCodes).toEqual([1]);
   });
 });

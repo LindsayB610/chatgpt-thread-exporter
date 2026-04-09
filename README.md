@@ -12,20 +12,22 @@ What is implemented today:
 
 - CLI argument parsing and validation
 - default stdout output routing
+- safe local file output via `--out`
 - local debug artifact output via `--debug-html` and `--debug-json`
 - shared-link fetching with timeout and basic request hardening
+- fixture capture and fixture-backed parser support
+- extractor implementation for current streamed shared-link metadata and synthetic fixture payloads
+- transcript normalization for saved message-tree fixtures, with explicit fallbacks for metadata-only payloads
+- polished Markdown rendering with deterministic golden tests
 - pipeline staging for fetch, extract, normalize, render, and output routing
 - build/test packaging for the local CLI
 
 What is still ahead:
 
-- real fixture capture from shared-link pages
-- extractor implementation against committed fixtures
-- transcript normalization beyond the current stub
-- polished Markdown rendering for real threads
 - GitHub write mode
+- broader live-shape compatibility hardening over time
 
-Phases 0 through 4 of the implementation plan are complete. The next planned step is fixture capture and extractor work.
+Phases 0 through 10 of the implementation plan are complete. The local-only exporter is now at the first release-candidate milestone described by the plan.
 
 ## Design Principles
 

@@ -8,5 +8,7 @@ type GitHubWriteInput = {
 };
 
 export async function writeGitHubFile(_input: GitHubWriteInput): Promise<void> {
-  throw new Error("GitHub write mode is scaffolded but not implemented yet.");
+  throw new Error(
+    "GitHub write mode is not implemented yet. The local-only exporter is ready now; GitHub output is planned for a later phase."
+  );
 }

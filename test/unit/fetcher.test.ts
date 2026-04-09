@@ -52,7 +52,7 @@ describe("fetchSharedLink", () => {
     );
 
     await expect(fetchSharedLink("https://chatgpt.com/share/abc")).rejects.toThrow(
-      "Failed to fetch shared link: HTTP 403"
+      "Failed to fetch shared link: HTTP 403. The shared link may be unavailable or require a different page shape than this exporter expects."
     );
   });
 
@@ -71,7 +71,7 @@ describe("fetchSharedLink", () => {
     try {
       const promise = fetchSharedLink("https://chatgpt.com/share/abc");
       const assertion = expect(promise).rejects.toThrow(
-        "Failed to fetch shared link: request timed out after 15000ms"
+        "Failed to fetch shared link: request timed out after 15000ms. Try again in a moment or save a debug HTML snapshot if the page is unstable."
       );
 
       await vi.advanceTimersByTimeAsync(15000);

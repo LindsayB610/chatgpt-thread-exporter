@@ -30,32 +30,34 @@ describe("parseArgs", () => {
 
   it("fails on unknown flags", () => {
     expect(() => parseArgs(["--url", "https://chatgpt.com/share/abc", "--wat"])).toThrow(
-      "Unknown argument: --wat"
+      "Unknown argument: --wat. Run with the documented flags only."
     );
   });
 
   it("fails when a flag that requires a value is missing one", () => {
-    expect(() => parseArgs(["--url"])).toThrow("Missing value for --url");
+    expect(() => parseArgs(["--url"])).toThrow(
+      "Missing value for --url. Expected a file path, URL, or string after the flag."
+    );
     expect(() => parseArgs(["--url", "https://chatgpt.com/share/abc", "--out"])).toThrow(
-      "Missing value for --out"
+      "Missing value for --out. Expected a file path, URL, or string after the flag."
     );
     expect(() => parseArgs(["--url", "https://chatgpt.com/share/abc", "--repo"])).toThrow(
-      "Missing value for --repo"
+      "Missing value for --repo. Expected a file path, URL, or string after the flag."
     );
     expect(() =>
       parseArgs(["--url", "https://chatgpt.com/share/abc", "--repo-path"])
-    ).toThrow("Missing value for --repo-path");
+    ).toThrow("Missing value for --repo-path. Expected a file path, URL, or string after the flag.");
     expect(() =>
       parseArgs(["--url", "https://chatgpt.com/share/abc", "--debug-html"])
-    ).toThrow("Missing value for --debug-html");
+    ).toThrow("Missing value for --debug-html. Expected a file path, URL, or string after the flag.");
     expect(() =>
       parseArgs(["--url", "https://chatgpt.com/share/abc", "--debug-json"])
-    ).toThrow("Missing value for --debug-json");
+    ).toThrow("Missing value for --debug-json. Expected a file path, URL, or string after the flag.");
     expect(() => parseArgs(["--url", "https://chatgpt.com/share/abc", "--title"])).toThrow(
-      "Missing value for --title"
+      "Missing value for --title. Expected a file path, URL, or string after the flag."
     );
     expect(() => parseArgs(["--url", "https://chatgpt.com/share/abc", "--branch"])).toThrow(
-      "Missing value for --branch"
+      "Missing value for --branch. Expected a file path, URL, or string after the flag."
     );
   });
 });

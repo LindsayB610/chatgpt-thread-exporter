@@ -20,7 +20,9 @@ export async function fetchSharedLink(sourceUrl: string): Promise<FetchResult> {
     });
   } catch (error: unknown) {
     if (error instanceof Error && error.name === "AbortError") {
-      throw new Error(`Failed to fetch shared link: request timed out after ${FETCH_TIMEOUT_MS}ms`);
+      throw new Error(
+        `Failed to fetch shared link: request timed out after ${FETCH_TIMEOUT_MS}ms. Try again in a moment or save a debug HTML snapshot if the page is unstable.`
+      );
     }
 
     throw error;
@@ -29,7 +31,9 @@ export async function fetchSharedLink(sourceUrl: string): Promise<FetchResult> {
   }
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch shared link: HTTP ${response.status}`);
+    throw new Error(
+      `Failed to fetch shared link: HTTP ${response.status}. The shared link may be unavailable or require a different page shape than this exporter expects.`
+    );
   }
 
   return {
