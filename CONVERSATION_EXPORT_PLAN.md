@@ -828,6 +828,26 @@ Done when:
 - the CLI can export a readable PDF that resembles the ChatGPT conversation layout
 - PDF export is tested and does not break Markdown export
 
+### Phase 14: Lightweight Web Frontend (`v1.3`)
+
+- build a small frontend for people who prefer a web UI over the CLI
+- support an official hosted instance operated by the maintainer
+- keep the frontend as a thin interface over the same core export engine and transcript model
+- strongly prefer a browser-first architecture so shared-link content stays client-side when feasible
+- only introduce a server-backed flow if shared-link fetch constraints make a browser-only implementation impractical
+- preserve the project's local-first and privacy-respecting posture as much as possible
+- support the same core export paths from the UI: Markdown first, later PDF if available
+- keep the UI simple: paste shared link, choose output format, export
+- keep the codebase deployable by others even if the maintainer runs the canonical public instance
+- document clearly whether any conversation data passes through hosted infrastructure
+
+Done when:
+
+- a non-developer can use the exporter from the web UI without touching Terminal
+- the frontend clearly communicates privacy behavior
+- the official hosted frontend remains aligned with the CLI rather than becoming a separate product
+- self-hosting remains possible even though an official hosted instance exists
+
 ### Packaging and Release Mechanics
 
 If public distribution through npm is desired, decide this explicitly after the local-only release candidate is stable.
@@ -884,6 +904,7 @@ The README should say plainly:
 - stdout is available with an explicit flag
 - GitHub export is opt-in
 - PDF export, if added, is opt-in
+- a hosted frontend, if added, should explain clearly whether export data stays client-side or touches hosted infrastructure
 - users should think carefully before exporting sensitive conversations
 - unsupported content may be represented as placeholders
 - normal local usage is free and requires no paid service operated by the maintainer
@@ -925,6 +946,7 @@ Optional next releases:
 
 - explicit GitHub write
 - ChatGPT-style PDF export
+- lightweight web frontend
 
 The key v2 change is this:
 

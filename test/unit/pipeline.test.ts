@@ -264,6 +264,31 @@ describe("emitPipelineOutputs", () => {
       false
     );
   });
+
+  it("prints a confirmation after a successful GitHub export", async () => {
+    const dependencies = createDependencies();
+
+    await emitPipelineOutputs(
+      createArtifacts({
+        url: "https://chatgpt.com/share/abc",
+        repo: "LindsayB610/chatgpt-thread-exporter",
+        repoPath: "exports/thread.md"
+      }),
+      dependencies
+    );
+
+    expect(dependencies.writeGitHubFile).toHaveBeenCalledWith({
+      repo: "LindsayB610/chatgpt-thread-exporter",
+      repoPath: "exports/thread.md",
+      branch: undefined,
+      title: "Fixture Thread",
+      content: "# Fixture Thread\n",
+      force: false
+    });
+    expect(dependencies.stdoutWrite).toHaveBeenCalledWith(
+      "Saved export to GitHub: LindsayB610/chatgpt-thread-exporter/exports/thread.md\n"
+    );
+  });
 });
 
 describe("runCli", () => {

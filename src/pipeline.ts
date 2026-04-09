@@ -182,6 +182,8 @@ export async function emitPipelineOutputs(
       content: markdown,
       force: options.force === true
     });
+
+    dependencies.stdoutWrite(`Saved export to GitHub: ${options.repo}/${options.repoPath}\n`);
   }
 }
 

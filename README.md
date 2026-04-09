@@ -23,7 +23,7 @@ npm install
 Export a shared conversation:
 
 ```bash
-npm run dev -- --url "https://chatgpt.com/share/69d5d1d7-dbec-83e8-abf0-628476797aa9"
+npm run dev -- --url "https://chatgpt.com/share/69d7d865-ae4c-83e8-ac85-06b3a111208d"
 ```
 
 That saves a Markdown file into your `Downloads` folder automatically.
@@ -36,38 +36,59 @@ The filename is based on the thread title and ends with `-export.md`.
 
 Examples:
 
-- `first-grade-reading-sentences-export.md`
-- `golden-raisin-turkey-tacos-export.md`
+- `raccoon-city-design-export.md`
+- `moon-explainer-export.md`
 
 If that filename already exists, the tool automatically picks a unique name like:
 
-- `first-grade-reading-sentences-export-2.md`
-- `first-grade-reading-sentences-export-3.md`
+- `raccoon-city-design-export-2.md`
+- `raccoon-city-design-export-3.md`
 
 ## Common Commands
 
 Print Markdown in Terminal instead of saving a file:
 
 ```bash
-npm run dev -- --url "https://chatgpt.com/share/69d5d1d7-dbec-83e8-abf0-628476797aa9" --stdout
+npm run dev -- --url "https://chatgpt.com/share/69d7d865-ae4c-83e8-ac85-06b3a111208d" --stdout
 ```
 
 Save to a specific file path:
 
 ```bash
-npm run dev -- --url "https://chatgpt.com/share/69d5d1d7-dbec-83e8-abf0-628476797aa9" --out "/Users/lindsaybrunner/Downloads/reading-thread.md"
+npm run dev -- --url "https://chatgpt.com/share/69d7d865-ae4c-83e8-ac85-06b3a111208d" --out "/Users/lindsaybrunner/Downloads/raccoon-city-design.md"
 ```
 
 Overwrite a specific file you already chose:
 
 ```bash
-npm run dev -- --url "https://chatgpt.com/share/69d5d1d7-dbec-83e8-abf0-628476797aa9" --out "/Users/lindsaybrunner/Downloads/reading-thread.md" --force
+npm run dev -- --url "https://chatgpt.com/share/69d7d865-ae4c-83e8-ac85-06b3a111208d" --out "/Users/lindsaybrunner/Downloads/raccoon-city-design.md" --force
 ```
 
 Show built-in help:
 
 ```bash
 npm run dev -- --help
+```
+
+## GitHub Export
+
+GitHub export is now supported when you explicitly opt into it.
+
+You will need a `GITHUB_TOKEN` environment variable with access to the destination repository.
+
+Example:
+
+```bash
+export GITHUB_TOKEN="your_token_here"
+npm run dev -- --url "https://chatgpt.com/share/69d7d865-ae4c-83e8-ac85-06b3a111208d" --repo "LindsayB610/chatgpt-thread-exporter" --repo-path "exports/raccoon-city-design.md"
+```
+
+If the target file already exists, add `--force` to overwrite it.
+
+On success, the CLI prints a confirmation like:
+
+```text
+Saved export to GitHub: owner/repo/path/to/file.md
 ```
 
 ## Troubleshooting Only
@@ -77,7 +98,7 @@ You do not need this for normal use.
 Only use debug files if a thread exports strangely and you want to inspect what the tool fetched and parsed:
 
 ```bash
-npm run dev -- --url "https://chatgpt.com/share/69d5d1d7-dbec-83e8-abf0-628476797aa9" --out "/Users/lindsaybrunner/Downloads/reading-thread.md" --debug-html "/Users/lindsaybrunner/Downloads/reading-thread-debug.html" --debug-json "/Users/lindsaybrunner/Downloads/reading-thread-debug.json"
+npm run dev -- --url "https://chatgpt.com/share/69d7d865-ae4c-83e8-ac85-06b3a111208d" --out "/Users/lindsaybrunner/Downloads/raccoon-city-design.md" --debug-html "/Users/lindsaybrunner/Downloads/raccoon-city-design-debug.html" --debug-json "/Users/lindsaybrunner/Downloads/raccoon-city-design-debug.json"
 ```
 
 ## What It Does Today
@@ -89,6 +110,7 @@ npm run dev -- --url "https://chatgpt.com/share/69d5d1d7-dbec-83e8-abf0-62847679
 - creates unique filenames automatically
 - supports explicit output paths with `--out`
 - supports Terminal output with `--stdout`
+- supports opt-in GitHub export with `--repo` and `--repo-path`
 
 ## Current Limits
 
@@ -96,7 +118,7 @@ npm run dev -- --url "https://chatgpt.com/share/69d5d1d7-dbec-83e8-abf0-62847679
 - it is designed first for mostly text-based threads
 - rich content may still be represented as placeholders
 - some live exports may still include internal or system artifacts that need more cleanup
-- GitHub export is not implemented yet
+- GitHub export requires your own `GITHUB_TOKEN`
 
 ## Privacy
 
@@ -111,6 +133,5 @@ This project is public and released under the MIT License. See [LICENSE](./LICEN
 
 ## Project Notes
 
-- GitHub export is planned for a later release
 - ChatGPT-style PDF export is planned for a later release
 - the implementation plan lives in [CONVERSATION_EXPORT_PLAN.md](./CONVERSATION_EXPORT_PLAN.md)
