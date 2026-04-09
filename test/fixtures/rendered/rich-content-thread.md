@@ -1,14 +1,14 @@
 # Photo shortlist feedback
 
 Source: https://chatgpt.com/share/example
-Exported: 2026-04-08T12:00:00.000Z
+Exported: Apr 8, 2026
 
-## User
+## You
 
 Which of these travel photos feels strongest for a homepage hero?
 
 
-## Assistant
+## ChatGPT
 
 The first image reads strongest because the subject has more separation from the background.
 

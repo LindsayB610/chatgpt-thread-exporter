@@ -1,5 +1,6 @@
 import { marked } from "marked";
 import type { AttachmentReference, ExportBlock, ExportTranscript, ExportTurn } from "../types.js";
+import { formatConversationRange, formatExportedAt } from "../utils/date-display.js";
 
 marked.setOptions({
   gfm: true,
@@ -7,6 +8,10 @@ marked.setOptions({
 });
 
 export function renderChatGptHtml(transcript: ExportTranscript): string {
+  const conversationRange = formatConversationRange(transcript.turns.map((turn) => turn.timestamp));
+  const renderedTurns = transcript.turns.map((turn, index, turns) =>
+    renderTurn(turn, index > 0 && turns[index - 1]?.role === turn.role)
+  );
   return [
     "<!doctype html>",
     '<html lang="en">',
@@ -24,10 +29,10 @@ export function renderChatGptHtml(transcript: ExportTranscript): string {
     `      <p class="export-brand">ChatGPT Export</p>`,
     `      <h1 class="export-title">${escapeHtml(transcript.title)}</h1>`,
     `      <p class="export-meta"><span>Source:</span> <span>${escapeHtml(transcript.sourceUrl)}</span></p>`,
-    `      <p class="export-meta"><span>Exported:</span> <span>${escapeHtml(transcript.exportedAt)}</span></p>`,
+    `      <p class="export-meta"><span>${conversationRange ? "Conversation:" : "Exported:"}</span> <span>${escapeHtml(conversationRange ?? formatExportedAt(transcript.exportedAt))}</span></p>`,
     "    </header>",
     '    <section class="conversation-thread">',
-    transcript.turns.map((turn) => indentLines(renderTurn(turn), 6)).join("\n"),
+    renderedTurns.map((turn) => indentLines(turn, 6)).join("\n"),
     "    </section>",
     "  </main>",
     "</body>",
@@ -36,8 +41,11 @@ export function renderChatGptHtml(transcript: ExportTranscript): string {
   ].join("\n");
 }
 
-function renderTurn(turn: ExportTurn): string {
+function renderTurn(turn: ExportTurn, compact: boolean): string {
   const classes = ["turn", `turn-${turn.role}`];
+  if (compact) {
+    classes.push("turn-compact");
+  }
   const isBubble = turn.role === "user";
 
   return [
@@ -120,7 +128,18 @@ function renderMarkdownText(text: string): string {
 }
 
 function labelForRole(role: ExportTurn["role"]): string {
-  return role.charAt(0).toUpperCase() + role.slice(1);
+  switch (role) {
+    case "user":
+      return "You";
+    case "assistant":
+      return "ChatGPT";
+    case "system":
+      return "System";
+    case "tool":
+      return "Tool";
+    default:
+      return role;
+  }
 }
 
 function escapeHtml(value: string): string {
@@ -216,6 +235,10 @@ body {
   display: flex;
 }
 
+.turn-compact {
+  margin-top: -8px;
+}
+
 .turn-user {
   justify-content: flex-end;
 }
@@ -244,10 +267,9 @@ body {
 
 .turn-label {
   margin: 0 0 12px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
   color: var(--muted);
 }
 
@@ -324,6 +346,30 @@ body {
   border: 0;
   border-top: 1px solid var(--border);
   margin: 18px 0;
+}
+
+.block-text h1,
+.block-text h2,
+.block-text h3,
+.block-text h4,
+.block-text h5,
+.block-text h6,
+.block-quote h1,
+.block-quote h2,
+.block-quote h3,
+.block-quote h4,
+.block-quote h5,
+.block-quote h6 {
+  break-after: avoid-page;
+  page-break-after: avoid;
+}
+
+.block-text p,
+.block-text li,
+.block-quote p,
+.block-quote li {
+  orphans: 3;
+  widows: 3;
 }
 
 .block-text strong,

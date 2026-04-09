@@ -220,6 +220,8 @@ function narrowToShareTail(decodedStream: string): string {
 function extractReactRouterMessages(streamJson: string): Array<{
   id: string;
   role: string;
+  timestamp?: string;
+  authorName?: string;
   parts: Array<{ type: string; text?: string; language?: string; name?: string; mimeType?: string; url?: string }>;
 }> {
   let chunk: unknown;
@@ -245,6 +247,8 @@ function extractReactRouterMessages(streamJson: string): Array<{
   const messages: Array<{
     id: string;
     role: string;
+    timestamp?: string;
+    authorName?: string;
     parts: Array<{ type: string; text?: string; language?: string; name?: string; mimeType?: string; url?: string }>;
   }> = [];
 
@@ -275,11 +279,29 @@ function extractReactRouterMessages(streamJson: string): Array<{
             ? node.id
             : `message-${nodeIndex}`,
       role,
+      timestamp: normalizeMessageTimestamp(message.create_time ?? message.update_time),
+      authorName: typeof author.name === "string" ? author.name : undefined,
       parts
     });
   }
 
   return messages.filter((message) => message.parts.length > 0);
+}
+
+function normalizeMessageTimestamp(value: unknown): string | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    const milliseconds = value > 1e12 ? value : value * 1000;
+    return new Date(milliseconds).toISOString();
+  }
+
+  if (typeof value === "string") {
+    const date = new Date(value);
+    if (!Number.isNaN(date.getTime())) {
+      return date.toISOString();
+    }
+  }
+
+  return undefined;
 }
 
 function normalizeReactRouterContentParts(

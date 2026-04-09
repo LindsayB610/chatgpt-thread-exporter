@@ -1,11 +1,15 @@
 import type { ExportBlock, ExportTranscript } from "./types.js";
+import { formatConversationRange, formatExportedAt } from "./utils/date-display.js";
 
 export function renderMarkdown(transcript: ExportTranscript): string {
+  const conversationRange = formatConversationRange(transcript.turns.map((turn) => turn.timestamp));
   const lines: string[] = [
     `# ${transcript.title}`,
     "",
     `Source: ${transcript.sourceUrl}`,
-    `Exported: ${transcript.exportedAt}`
+    conversationRange
+      ? `Conversation: ${conversationRange}`
+      : `Exported: ${formatExportedAt(transcript.exportedAt)}`
   ];
 
   for (const turn of transcript.turns) {
@@ -29,7 +33,18 @@ export function renderMarkdown(transcript: ExportTranscript): string {
 }
 
 function labelForRole(role: ExportTranscript["turns"][number]["role"]): string {
-  return role.charAt(0).toUpperCase() + role.slice(1);
+  switch (role) {
+    case "user":
+      return "You";
+    case "assistant":
+      return "ChatGPT";
+    case "system":
+      return "System";
+    case "tool":
+      return "Tool";
+    default:
+      return role;
+  }
 }
 
 function renderBlock(block: ExportBlock): string[] {

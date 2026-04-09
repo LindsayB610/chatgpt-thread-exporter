@@ -1,7 +1,7 @@
 # Story Time Practice
 
 Source: https://chatgpt.com/share/example
-Exported: 2026-04-08T12:00:00.000Z
+Exported: Apr 8, 2026
 
 ## System
 

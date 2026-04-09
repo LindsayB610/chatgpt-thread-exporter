@@ -1,14 +1,14 @@
 # TypeScript date formatter helper
 
 Source: https://chatgpt.com/share/example
-Exported: 2026-04-08T12:00:00.000Z
+Exported: Apr 8, 2026
 
-## User
+## You
 
 Show me a tiny TypeScript helper that formats a date like 2026-04-08.
 
 
-## Assistant
+## ChatGPT
 
 Here is a small helper.
 

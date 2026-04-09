@@ -49,6 +49,36 @@ describe("normalizeTranscript", () => {
     ]);
   });
 
+  it("preserves extracted message timestamps on turns", () => {
+    const transcript = normalizeTranscript(
+      fetchResult,
+      {
+        payload: {
+          transport: "react-router-stream",
+          title: "Timestamp Test",
+          messages: [
+            {
+              id: "user-1",
+              role: "user",
+              timestamp: "2026-04-08T12:00:00.000Z",
+              parts: [{ type: "text", text: "First message" }]
+            },
+            {
+              id: "assistant-1",
+              role: "assistant",
+              timestamp: "2026-04-08T12:15:00.000Z",
+              parts: [{ type: "text", text: "Reply message" }]
+            }
+          ]
+        }
+      },
+      baseOptions
+    );
+
+    expect(transcript.turns[0]?.timestamp).toBe("2026-04-08T12:00:00.000Z");
+    expect(transcript.turns[1]?.timestamp).toBe("2026-04-08T12:15:00.000Z");
+  });
+
   it("preserves text and code as separate first-class blocks", () => {
     const extractResult = extractConversationPayload(
       readSharedLinkFixture("code-block-thread.fixture.html")
@@ -67,7 +97,7 @@ describe("normalizeTranscript", () => {
     ]);
 
     const markdown = renderMarkdown(transcript);
-    expect(markdown).toContain("## Assistant");
+    expect(markdown).toContain("## ChatGPT");
     expect(markdown).toContain("```ts");
     expect(markdown).toContain("Here is a small helper.");
   });
@@ -142,6 +172,38 @@ describe("normalizeTranscript", () => {
     });
 
     expect(transcript.title).toBe("My Exported Thread");
+  });
+
+  it("strips inline research citation markers from text content", () => {
+    const transcript = normalizeTranscript(
+      fetchResult,
+      {
+        payload: {
+          transport: "react-router-stream",
+          title: "Citation Cleanup Test",
+          messages: [
+            {
+              id: "assistant-1",
+              role: "assistant",
+              parts: [
+                {
+                  type: "text",
+                  text: "A paragraph with a citation marker. citeturn123view0\n\n## Heading After Citation"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      baseOptions
+    );
+
+    expect(transcript.turns[0]?.blocks).toEqual([
+      {
+        kind: "text",
+        text: "A paragraph with a citation marker.\n\n## Heading After Citation"
+      }
+    ]);
   });
 
   it("drops known internal artifact messages from live-style payloads", () => {

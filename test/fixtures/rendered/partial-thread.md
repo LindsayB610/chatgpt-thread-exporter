@@ -1,14 +1,14 @@
 # Road trip packing list
 
 Source: https://chatgpt.com/share/example
-Exported: 2026-04-08T12:00:00.000Z
+Exported: Apr 8, 2026
 
-## User
+## You
 
 Can you help me build a packing list for a three-day coastal road trip?
 
 
-## Assistant
+## ChatGPT
 
 Absolutely. Start with layers, chargers, and a compact first-aid kit.
 

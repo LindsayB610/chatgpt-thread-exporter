@@ -90,6 +90,8 @@ function normalizeMessageTurn(
     id: message.id,
     role: normalizeRole(message.role),
     blocks: blocks.length > 0 ? blocks : [{ kind: "unknown", summary: "Message had no supported parts." }],
+    timestamp: message.timestamp,
+    authorName: message.authorName,
     metadata: attachments.length > 0 ? { attachments } : undefined
   };
 }
@@ -140,7 +142,7 @@ function asTextBlocks(value: unknown): ExportTranscript["turns"][number]["blocks
     return [{ kind: "unknown", summary: "Text part was present but unreadable." }];
   }
 
-  const trimmed = value.trim();
+  const trimmed = sanitizeTextPart(value).trim();
   if (!trimmed || isKnownArtifactText(trimmed)) {
     return [];
   }
@@ -165,6 +167,13 @@ function normalizeRole(value: unknown): ExportTranscript["turns"][number]["role"
   }
 }
 
+function sanitizeTextPart(value: string): string {
+  return value
+    .replace(/cite.*?/g, "")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n");
+}
+
 function deriveTranscriptTitle(explicitTitle: string | undefined, extractedTitle: unknown): string {
   if (typeof extractedTitle === "string" && extractedTitle.trim().length > 0 && !explicitTitle?.trim()) {
     return extractedTitle.trim();
@@ -180,6 +189,8 @@ function asRecord(value: unknown): Record<string, unknown> {
 type MessageRecord = {
   id: string;
   role: unknown;
+  timestamp?: string;
+  authorName?: string;
   parts: PartRecord[];
 };
 
@@ -205,6 +216,8 @@ function asMessageArray(value: unknown): MessageRecord[] {
       return {
         id: typeof record.id === "string" ? record.id : `message-${index + 1}`,
         role: record.role,
+        timestamp: typeof record.timestamp === "string" ? record.timestamp : undefined,
+        authorName: typeof record.authorName === "string" ? record.authorName : undefined,
         parts: rawParts.map((part) => {
           const partRecord = asRecord(part);
 

@@ -33,6 +33,8 @@ describe("renderChatGptHtml", () => {
     expect(html).toContain('class="turn turn-assistant"');
     expect(html).toContain('class="turn-bubble"');
     expect(html).toContain('class="turn-content"');
+    expect(html).toContain(">You<");
+    expect(html).toContain(">ChatGPT<");
     expect(html).toContain("Planning a neighborhood potluck");
   });
 
@@ -75,6 +77,29 @@ describe("renderChatGptHtml", () => {
     expect(html).toContain("Unsupported content: image_reference");
     expect(html).toContain('class="turn-attachments"');
     expect(html).toContain("hero-shortlist-1.jpg");
+  });
+
+  it("tightens spacing for consecutive turns from the same role", () => {
+    const html = renderChatGptHtml({
+      sourceUrl: "https://chatgpt.com/share/example",
+      finalUrl: "https://chatgpt.com/share/example",
+      exportedAt: "2026-04-09T00:00:00.000Z",
+      title: "Spacing Test",
+      turns: [
+        {
+          id: "assistant-1",
+          role: "assistant",
+          blocks: [{ kind: "text", text: "First assistant turn." }]
+        },
+        {
+          id: "assistant-2",
+          role: "assistant",
+          blocks: [{ kind: "text", text: "Second assistant turn." }]
+        }
+      ]
+    });
+
+    expect(html).toContain('class="turn turn-assistant turn-compact"');
   });
 
   it("escapes HTML-sensitive content instead of injecting raw markup", () => {
