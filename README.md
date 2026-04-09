@@ -45,6 +45,52 @@ For short threads, a ChatGPT shared link is the most practical export source bec
 
 This tool is meant to make that snapshot portable and readable without forcing a larger knowledge-management system around it.
 
+## Quick Start
+
+If you have never used a CLI before, these are the main commands to copy and paste.
+
+First, open Terminal and go to the project folder:
+
+```bash
+cd "/Users/lindsaybrunner/Documents/chatgpt thread exporter"
+```
+
+Install dependencies once:
+
+```bash
+npm install
+```
+
+Save a shared conversation to a uniquely named Markdown file in Downloads:
+
+```bash
+npm run dev -- --url "https://chatgpt.com/share/69d5d1d7-dbec-83e8-abf0-628476797aa9"
+```
+
+Print a shared conversation as Markdown in Terminal instead:
+
+```bash
+npm run dev -- --url "https://chatgpt.com/share/69d5d1d7-dbec-83e8-abf0-628476797aa9" --stdout
+```
+
+Save a shared conversation to a specific Markdown file:
+
+```bash
+npm run dev -- --url "https://chatgpt.com/share/69d5d1d7-dbec-83e8-abf0-628476797aa9" --out "/Users/lindsaybrunner/Downloads/reading-thread.md"
+```
+
+Overwrite an existing Markdown file:
+
+```bash
+npm run dev -- --url "https://chatgpt.com/share/69d5d1d7-dbec-83e8-abf0-628476797aa9" --out "/Users/lindsaybrunner/Downloads/reading-thread.md" --force
+```
+
+Save debug artifacts if a thread exports strangely:
+
+```bash
+npm run dev -- --url "https://chatgpt.com/share/69d5d1d7-dbec-83e8-abf0-628476797aa9" --out "/Users/lindsaybrunner/Downloads/reading-thread.md" --debug-html "/Users/lindsaybrunner/Downloads/reading-thread-debug.html" --debug-json "/Users/lindsaybrunner/Downloads/reading-thread-debug.json"
+```
+
 ## Planned CLI Shape
 
 ```bash
@@ -67,19 +113,20 @@ chatgpt-thread-exporter \
 
 ## Default Behavior
 
-By default, the tool should render Markdown to stdout.
+By default, the tool saves a Markdown file in your `Downloads` folder using the thread title plus `-export.md`.
 
-Writes are opt-in:
+If that filename already exists, it automatically picks a unique name like `thread-title-export-2.md`.
 
-- `--out` for a local file
-- `--repo` plus `--repo-path` for GitHub
+Other output modes:
 
-The tool should never default to writing exported conversations into its own source repo.
+- `--stdout` prints Markdown in Terminal instead of saving a default file
+- `--out` writes to a specific local file path
+- `--repo` plus `--repo-path` is reserved for future GitHub export support
 
 ## Privacy Notes
 
 - This tool is for shared links you explicitly provide.
-- Local or stdout output is the default.
+- Local output to `Downloads` is the default.
 - GitHub export is optional and uses your own GitHub credentials.
 - You should think carefully before exporting sensitive conversations anywhere permanent.
 

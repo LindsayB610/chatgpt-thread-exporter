@@ -8,6 +8,7 @@ import type {
 } from "./types.js";
 import { buildDebugArtifactErrorPayload, buildDebugArtifactPayload } from "./debug.js";
 import { parseArgs, validateOptions } from "./utils/args.js";
+import { resolveDefaultOutPath } from "./utils/output-path.js";
 import { fetchSharedLink } from "./fetcher.js";
 import { extractConversationPayload } from "./extractor.js";
 import { normalizeTranscript } from "./normalizer.js";
@@ -139,9 +140,14 @@ export async function emitPipelineOutputs(
     defaultPipelineDependencies
 ): Promise<void> {
   const { options, transcript, markdown, fetchResult, extractResult } = artifacts;
-  const shouldPrint = options.stdout || (!options.out && !options.repo);
+  const shouldAutoSaveDefaultFile =
+    !options.dryRun && !options.stdout && !options.out && !options.repo;
+  const resolvedOutPath = shouldAutoSaveDefaultFile
+    ? await resolveDefaultOutPath(transcript.title)
+    : options.out;
+  const shouldPrintMarkdown = options.stdout || options.dryRun;
 
-  if (shouldPrint || options.dryRun) {
+  if (shouldPrintMarkdown) {
     dependencies.stdoutWrite(markdown);
     if (!markdown.endsWith("\n")) {
       dependencies.stdoutWrite("\n");
@@ -159,8 +165,12 @@ export async function emitPipelineOutputs(
     return;
   }
 
-  if (options.out) {
-    await dependencies.writeLocalFile(options.out, markdown, options.force === true);
+  if (resolvedOutPath) {
+    await dependencies.writeLocalFile(resolvedOutPath, markdown, options.force === true);
+  }
+
+  if (shouldAutoSaveDefaultFile && resolvedOutPath) {
+    dependencies.stdoutWrite(`Saved export to ${resolvedOutPath}\n`);
   }
 
   if (options.repo && options.repoPath) {

@@ -1,4 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   buildPipelineArtifacts,
   emitPipelineOutputs,
@@ -6,6 +9,24 @@ import {
   type PipelineDependencies
 } from "../../src/pipeline.js";
 import type { CliOptions, ExtractResult, FetchResult, PipelineArtifacts } from "../../src/types.js";
+
+const tempDirs: string[] = [];
+
+afterEach(async () => {
+  vi.unstubAllEnvs();
+
+  await Promise.all(
+    tempDirs.splice(0).map(async (dir) => {
+      await rm(dir, { recursive: true, force: true });
+    })
+  );
+});
+
+async function createTempDir(): Promise<string> {
+  const dir = await mkdtemp(path.join(tmpdir(), "chatgpt-thread-exporter-pipeline-"));
+  tempDirs.push(dir);
+  return dir;
+}
 
 function createDependencies(overrides: Partial<PipelineDependencies> = {}): PipelineDependencies {
   return {
@@ -175,14 +196,39 @@ describe("emitPipelineOutputs", () => {
     expect(dependencies.stdoutWrite).toHaveBeenCalledWith("# Fixture Thread\n");
   });
 
-  it("prints to stdout by default when no destination flags are provided", async () => {
+  it("writes to a unique Downloads file by default when no destination flags are provided", async () => {
+    const home = await createTempDir();
+    vi.stubEnv("HOME", home);
     const dependencies = createDependencies();
 
     await emitPipelineOutputs(createArtifacts(), dependencies);
 
-    expect(dependencies.stdoutWrite).toHaveBeenCalledWith("# Fixture Thread\n");
-    expect(dependencies.writeLocalFile).not.toHaveBeenCalled();
+    expect(dependencies.writeLocalFile).toHaveBeenCalledWith(
+      path.join(home, "Downloads", "fixture-thread-export.md"),
+      "# Fixture Thread\n",
+      false
+    );
+    expect(dependencies.stdoutWrite).toHaveBeenCalledWith(
+      `Saved export to ${path.join(home, "Downloads", "fixture-thread-export.md")}\n`
+    );
     expect(dependencies.writeGitHubFile).not.toHaveBeenCalled();
+  });
+
+  it("increments the default Downloads filename when one already exists", async () => {
+    const home = await createTempDir();
+    const downloadsDir = path.join(home, "Downloads");
+    vi.stubEnv("HOME", home);
+    await mkdir(downloadsDir, { recursive: true });
+    await writeFile(path.join(downloadsDir, "fixture-thread-export.md"), "existing\n", "utf8");
+    const dependencies = createDependencies();
+
+    await emitPipelineOutputs(createArtifacts(), dependencies);
+
+    expect(dependencies.writeLocalFile).toHaveBeenCalledWith(
+      path.join(home, "Downloads", "fixture-thread-export-2.md"),
+      "# Fixture Thread\n",
+      false
+    );
   });
 
   it("keeps debug artifacts when a later transcript destination write fails", async () => {
@@ -222,6 +268,8 @@ describe("emitPipelineOutputs", () => {
 
 describe("runCli", () => {
   it("uses the stage dependencies through the top-level CLI path", async () => {
+    const home = await createTempDir();
+    vi.stubEnv("HOME", home);
     const dependencies = createDependencies();
 
     await runCli(["--url", "https://chatgpt.com/share/abc"], dependencies);
@@ -230,7 +278,11 @@ describe("runCli", () => {
     expect(dependencies.extractConversationPayload).toHaveBeenCalledWith("<html>fixture</html>");
     expect(dependencies.normalizeTranscript).toHaveBeenCalled();
     expect(dependencies.renderMarkdown).toHaveBeenCalled();
-    expect(dependencies.stdoutWrite).toHaveBeenCalledWith("# Fixture Thread\n");
+    expect(dependencies.writeLocalFile).toHaveBeenCalledWith(
+      path.join(home, "Downloads", "fixture-thread-export.md"),
+      "# Fixture Thread\n",
+      false
+    );
   });
 
   it("writes debug artifacts when extraction fails after fetch succeeds", async () => {

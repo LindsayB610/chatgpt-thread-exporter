@@ -29,6 +29,7 @@ async function pathExists(filePath: string): Promise<boolean> {
 
 afterEach(async () => {
   vi.useRealTimers();
+  vi.unstubAllEnvs();
 
   await Promise.all(
     tempDirs.splice(0).map(async (dir) => {
@@ -84,6 +85,30 @@ describe("local export integration", () => {
 
     expect(markdown).toBe(expected);
     expect(stdoutWrites).toEqual([]);
+  });
+
+  it("writes a default export into Downloads with a title-based unique filename", async () => {
+    const home = await createTempDir();
+    const downloadsPath = path.join(home, "Downloads", "planning-a-neighborhood-potluck-export.md");
+    const stdoutWrites: string[] = [];
+
+    vi.stubEnv("HOME", home);
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-08T12:00:00.000Z"));
+
+    await runCli(
+      ["--url", "https://chatgpt.com/share/example"],
+      createDependencies(
+        readSharedLinkFixture("plain-text-thread.fixture.html"),
+        (chunk) => stdoutWrites.push(chunk)
+      )
+    );
+
+    const markdown = await readFile(downloadsPath, "utf8");
+    const expected = await readFile(path.join(renderedDir, "plain-text-thread.md"), "utf8");
+
+    expect(markdown).toBe(expected);
+    expect(stdoutWrites).toEqual([`Saved export to ${downloadsPath}\n`]);
   });
 
   it("keeps dry-run local-only by printing markdown and writing debug artifacts without creating the export file", async () => {
