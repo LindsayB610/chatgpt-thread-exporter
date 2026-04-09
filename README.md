@@ -76,6 +76,8 @@ GitHub export is now supported when you explicitly opt into it.
 
 You will need a `GITHUB_TOKEN` environment variable with access to the destination repository.
 
+The CLI writes to the exact repo path you provide with `--repo-path`.
+
 Example:
 
 ```bash
@@ -83,13 +85,29 @@ export GITHUB_TOKEN="your_token_here"
 npm run dev -- --url "https://chatgpt.com/share/69d7d865-ae4c-83e8-ac85-06b3a111208d" --repo "LindsayB610/chatgpt-thread-exporter" --repo-path "exports/raccoon-city-design.md"
 ```
 
-If the target file already exists, add `--force` to overwrite it.
+If the target file already exists, add `--force` to overwrite it:
+
+```bash
+npm run dev -- --url "https://chatgpt.com/share/69d7d865-ae4c-83e8-ac85-06b3a111208d" --repo "LindsayB610/chatgpt-thread-exporter" --repo-path "exports/raccoon-city-design.md" --force
+```
+
+If you want to write to a specific branch, add `--branch`:
+
+```bash
+npm run dev -- --url "https://chatgpt.com/share/69d7d865-ae4c-83e8-ac85-06b3a111208d" --repo "LindsayB610/chatgpt-thread-exporter" --repo-path "exports/raccoon-city-design.md" --branch "main"
+```
 
 On success, the CLI prints a confirmation like:
 
 ```text
 Saved export to GitHub: owner/repo/path/to/file.md
 ```
+
+Important:
+
+- the branch must already exist
+- the CLI does not auto-create branches in `v1.1`
+- GitHub export uses your own token and your own repository permissions
 
 ## Troubleshooting Only
 
