@@ -143,4 +143,58 @@ describe("normalizeTranscript", () => {
 
     expect(transcript.title).toBe("My Exported Thread");
   });
+
+  it("drops known internal artifact messages from live-style payloads", () => {
+    const transcript = normalizeTranscript(
+      fetchResult,
+      {
+        payload: {
+          transport: "react-router-stream",
+          title: "Artifact Cleanup Test",
+          messages: [
+            {
+              id: "artifact-custom-instructions",
+              role: "user",
+              parts: [{ type: "text", text: "Original custom instructions no longer available" }]
+            },
+            {
+              id: "artifact-context",
+              role: "assistant",
+              parts: [{ type: "model_editable_context" }]
+            },
+            {
+              id: "artifact-empty-code",
+              role: "assistant",
+              parts: [{ type: "code", text: "" }]
+            },
+            {
+              id: "real-user",
+              role: "user",
+              parts: [{ type: "text", text: "Please keep this turn." }]
+            },
+            {
+              id: "real-assistant",
+              role: "assistant",
+              parts: [{ type: "text", text: "Keeping the real conversation content." }]
+            }
+          ]
+        }
+      },
+      baseOptions
+    );
+
+    expect(transcript.turns).toMatchObject([
+      {
+        id: "real-user",
+        role: "user",
+        blocks: [{ kind: "text", text: "Please keep this turn." }]
+      },
+      {
+        id: "real-assistant",
+        role: "assistant",
+        blocks: [{ kind: "text", text: "Keeping the real conversation content." }]
+      }
+    ]);
+    expect(transcript.turns).toHaveLength(2);
+  });
 });

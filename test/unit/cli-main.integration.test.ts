@@ -7,6 +7,9 @@ describe("runCliMain integration", () => {
     const exitCodes: number[] = [];
 
     await runCliMain(["--url"], {
+      stdout: {
+        write: () => true
+      },
       stderr: {
         write: (chunk: string) => {
           stderrWrites.push(chunk);

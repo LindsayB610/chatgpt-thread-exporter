@@ -130,6 +130,8 @@ The v1 release candidate is successful if:
 
 GitHub write mode is valuable, but it is not required for the first public OSS release candidate.
 
+ChatGPT-style PDF export is valuable, but it is not required for the first public OSS release candidate.
+
 The POC does not need to prove:
 
 - long-term parser durability
@@ -768,41 +770,63 @@ Done when:
 
 - run end-to-end tests from fixture HTML through Markdown output
 - tighten error messages
-- ensure `--dry-run` and stdout behavior remain correct
+- ensure `--dry-run`, default local save behavior, and stdout behavior remain correct
 
 Done when:
 
 - the local-only exporter path is reliable and pleasant to use
 - the tool delivers its core value without GitHub mode
 
-This is the target first public OSS release candidate.
+This completes the functional core for the `v1.0` release track.
 
-### Phase 11: GitHub Writer
+### Phase 11: Final Polish for `v1.0`
+
+- improve formatting and metadata presentation
+- clean up live-export system and internal artifact handling
+- tighten privacy and limitations docs
+- simplify README onboarding and copy-paste usage
+- do a non-developer usability pass on CLI messages and help text
+- run final manual smoke tests
+- decide packaging and release posture for the public CLI
+
+Done when:
+
+- the project is ready for a first public OSS `v1.0` release
+- the README matches actual behavior
+- the local-only exporter feels trustworthy for normal non-developer use
+- internal and system artifact turns are filtered or presented cleanly enough in normal live exports
+
+### Phase 12: GitHub Writer (`v1.1`)
 
 - implement GitHub auth handling
 - implement create and force-update behavior
 - mock GitHub API interactions in tests
 - surface clear commit results and failure messages
+- use the same title-aware naming conventions when the user wants an automatic repo destination strategy in the future, while keeping `--repo-path` as the explicit path override
 
 Done when:
 
 - the CLI can write to an explicitly selected repo path
 - GitHub behavior is tested without requiring paid infrastructure
 
-This can ship as `v1.1` if it is not ready at the first public release.
+This should ship as `v1.1` after `v1.0` is stable.
 
-### Phase 12: Final Polish
+### Phase 13: ChatGPT-Style PDF Export (`v1.2`)
 
-- improve formatting and metadata presentation
-- tighten privacy and limitations docs
-- add README usage examples
-- run final manual smoke tests
-- decide packaging and release posture for the public CLI
+- add a `--format pdf` mode
+- keep Markdown as the default export path
+- generate PDF from a dedicated HTML render layer rather than trying to prettify raw Markdown
+- render transcript content into HTML styled to resemble the ChatGPT conversation UI
+- add print CSS for readable page breaks and headings
+- generate PDF output from the styled HTML
+- support the same default Downloads save behavior with unique title-based filenames
+- add fixture-backed PDF generation tests where practical
+- keep PDF generation local-first and free to run
 
 Done when:
 
-- the project is ready for a first public OSS release
-- the README matches actual behavior
+- the CLI can export a readable PDF that resembles the ChatGPT conversation layout
+- PDF export is tested and does not break Markdown export
 
 ### Packaging and Release Mechanics
 
@@ -856,8 +880,10 @@ The README should say plainly:
 
 - this is a best-effort exporter for ChatGPT shared links
 - the parser depends on the current shared-link page shape
-- stdout is the default
+- local export to `Downloads` is the default
+- stdout is available with an explicit flag
 - GitHub export is opt-in
+- PDF export, if added, is opt-in
 - users should think carefully before exporting sensitive conversations
 - unsupported content may be represented as placeholders
 - normal local usage is free and requires no paid service operated by the maintainer
@@ -891,13 +917,14 @@ Build the first version as a small CLI in `LindsayB610/chatgpt-thread-exporter`.
 Ship this shape first:
 
 - shared-link URL in
-- Markdown to stdout by default
+- Markdown to a sensible local default path
 - explicit local file write
 - parser fixtures and renderer tests from the start
 
-Optional next release:
+Optional next releases:
 
 - explicit GitHub write
+- ChatGPT-style PDF export
 
 The key v2 change is this:
 

@@ -20,6 +20,9 @@ describe("runCliMain", () => {
     const { runCliMain } = await import("../../src/cli-main.js");
 
     await runCliMain(["--url", "https://chatgpt.com/share/abc"], {
+      stdout: {
+        write: () => true
+      },
       stderr: {
         write: (chunk: string) => {
           stderrWrites.push(chunk);
@@ -45,6 +48,9 @@ describe("runCliMain", () => {
     const { runCliMain } = await import("../../src/cli-main.js");
 
     await runCliMain([], {
+      stdout: {
+        write: () => true
+      },
       stderr: {
         write: (chunk: string) => {
           stderrWrites.push(chunk);
@@ -58,5 +64,37 @@ describe("runCliMain", () => {
 
     expect(stderrWrites).toEqual(["Missing required argument: --url\n"]);
     expect(exitCodes).toEqual([1]);
+  });
+
+  it("prints help text without running the pipeline", async () => {
+    const stdoutWrites: string[] = [];
+    const stderrWrites: string[] = [];
+    const exitCodes: number[] = [];
+
+    const { runCliMain } = await import("../../src/cli-main.js");
+
+    await runCliMain(["--help"], {
+      stdout: {
+        write: (chunk: string) => {
+          stdoutWrites.push(chunk);
+          return true;
+        }
+      },
+      stderr: {
+        write: (chunk: string) => {
+          stderrWrites.push(chunk);
+          return true;
+        }
+      },
+      setExitCode: (code) => {
+        exitCodes.push(code);
+      }
+    });
+
+    expect(stdoutWrites.join("")).toContain("Default behavior:");
+    expect(stdoutWrites.join("")).toContain("Downloads folder");
+    expect(stderrWrites).toEqual([]);
+    expect(exitCodes).toEqual([]);
+    expect(runCliMock).not.toHaveBeenCalled();
   });
 });

@@ -24,7 +24,9 @@ function normalizeTurns(
 ): ExportTranscript["turns"] {
   const messages = asMessageArray(payload.messages);
   if (messages.length > 0) {
-    const turns = messages.map((message) => normalizeMessageTurn(message));
+    const turns = messages
+      .map((message) => normalizeMessageTurn(message))
+      .filter((turn): turn is NonNullable<typeof turn> => turn !== null);
 
     if (payload.isPartial === true) {
       turns.push({
@@ -68,9 +70,17 @@ function normalizeTurns(
   ];
 }
 
-function normalizeMessageTurn(message: MessageRecord): ExportTranscript["turns"][number] {
+function normalizeMessageTurn(message: MessageRecord): ExportTranscript["turns"][number] | null {
+  if (shouldDropArtifactMessage(message)) {
+    return null;
+  }
+
   const attachments: Array<{ name?: string; mimeType?: string; url?: string }> = [];
   const blocks = message.parts.flatMap((part) => normalizePart(part, attachments));
+
+  if (blocks.length === 0 && attachments.length === 0) {
+    return null;
+  }
 
   return {
     id: message.id,
@@ -88,14 +98,22 @@ function normalizePart(
     case "text":
       return asTextBlocks(part.text);
     case "code":
+      if (typeof part.text !== "string" || part.text.trim().length === 0) {
+        return [];
+      }
+
       return [
         {
           kind: "code",
-          text: typeof part.text === "string" ? part.text : "",
+          text: part.text,
           language: typeof part.language === "string" ? part.language : undefined
         }
       ];
     default:
+      if (isInternalOnlyPartType(part.type) && !part.name && !part.mimeType && !part.url) {
+        return [];
+      }
+
       attachments.push({
         name: part.name,
         mimeType: part.mimeType,
@@ -119,7 +137,7 @@ function asTextBlocks(value: unknown): ExportTranscript["turns"][number]["blocks
   }
 
   const trimmed = value.trim();
-  if (!trimmed) {
+  if (!trimmed || isKnownArtifactText(trimmed)) {
     return [];
   }
 
@@ -198,4 +216,27 @@ function asMessageArray(value: unknown): MessageRecord[] {
       };
     })
     .filter((message) => message.parts.length > 0 || typeof message.role === "string");
+}
+
+function isKnownArtifactText(text: string): boolean {
+  return text === "Original custom instructions no longer available";
+}
+
+function isInternalOnlyPartType(type: string): boolean {
+  return type === "model_editable_context";
+}
+
+function shouldDropArtifactMessage(message: MessageRecord): boolean {
+  return (
+    message.parts.length === 1 &&
+    ((message.parts[0]?.type === "text" &&
+      typeof message.parts[0].text === "string" &&
+      isKnownArtifactText(message.parts[0].text.trim())) ||
+      (message.parts[0]?.type === "code" &&
+        (typeof message.parts[0].text !== "string" || message.parts[0].text.trim().length === 0)) ||
+      (isInternalOnlyPartType(message.parts[0]?.type) &&
+        !message.parts[0].name &&
+        !message.parts[0].mimeType &&
+        !message.parts[0].url))
+  );
 }
