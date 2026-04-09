@@ -1,6 +1,6 @@
 # chatgpt-thread-exporter
 
-`chatgpt-thread-exporter` is a local-first CLI that exports a ChatGPT shared link to a readable Markdown file.
+`chatgpt-thread-exporter` is a local-first CLI that exports a ChatGPT shared link to a readable file you can keep.
 
 It is meant for short, valuable conversations you want to keep as a durable file you control.
 
@@ -28,6 +28,15 @@ npm run dev -- --url "https://chatgpt.com/share/69d7d865-ae4c-83e8-ac85-06b3a111
 
 That saves a Markdown file into your `Downloads` folder automatically.
 
+If you want a prettier, print-friendly PDF instead:
+
+```bash
+npx playwright install chromium
+npm run dev -- --url "https://chatgpt.com/share/69d7d865-ae4c-83e8-ac85-06b3a111208d" --format pdf
+```
+
+That saves a PDF into your `Downloads` folder with the same unique title-based naming pattern.
+
 ## How It Saves Files
 
 By default, the tool saves to your `Downloads` folder.
@@ -46,6 +55,12 @@ If that filename already exists, the tool automatically picks a unique name like
 
 ## Common Commands
 
+Save a print-friendly PDF instead of Markdown:
+
+```bash
+npm run dev -- --url "https://chatgpt.com/share/69d7d865-ae4c-83e8-ac85-06b3a111208d" --format pdf
+```
+
 Print Markdown in Terminal instead of saving a file:
 
 ```bash
@@ -62,6 +77,12 @@ Overwrite a specific file you already chose:
 
 ```bash
 npm run dev -- --url "https://chatgpt.com/share/69d7d865-ae4c-83e8-ac85-06b3a111208d" --out "/Users/lindsaybrunner/Downloads/raccoon-city-design.md" --force
+```
+
+Save a PDF to a specific file path:
+
+```bash
+npm run dev -- --url "https://chatgpt.com/share/69d7d865-ae4c-83e8-ac85-06b3a111208d" --format pdf --out "/Users/lindsaybrunner/Downloads/raccoon-city-design.pdf"
 ```
 
 Show built-in help:
@@ -124,6 +145,7 @@ npm run dev -- --url "https://chatgpt.com/share/69d7d865-ae4c-83e8-ac85-06b3a111
 - fetches public ChatGPT shared links
 - extracts live conversation text from current shared-link pages
 - renders readable Markdown with user and assistant turns
+- can also generate a ChatGPT-inspired, print-friendly PDF
 - saves locally by default
 - creates unique filenames automatically
 - supports explicit output paths with `--out`
@@ -137,6 +159,7 @@ npm run dev -- --url "https://chatgpt.com/share/69d7d865-ae4c-83e8-ac85-06b3a111
 - rich content may still be represented as placeholders
 - some live exports may still include internal or system artifacts that need more cleanup
 - GitHub export requires your own `GITHUB_TOKEN`
+- PDF export requires a local Playwright browser install
 
 ## Privacy
 
@@ -151,5 +174,4 @@ This project is public and released under the MIT License. See [LICENSE](./LICEN
 
 ## Project Notes
 
-- ChatGPT-style PDF export is planned for a later release
 - the implementation plan lives in [CONVERSATION_EXPORT_PLAN.md](./CONVERSATION_EXPORT_PLAN.md)

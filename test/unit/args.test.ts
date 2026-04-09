@@ -4,6 +4,8 @@ import { parseArgs, validateOptions } from "../../src/utils/args.js";
 describe("parseArgs", () => {
   it("parses the core flag set", () => {
     const options = parseArgs([
+      "--format",
+      "markdown",
       "--url",
       "https://chatgpt.com/share/abc",
       "--out",
@@ -18,6 +20,7 @@ describe("parseArgs", () => {
     ]);
 
     expect(options).toEqual({
+      format: "markdown",
       url: "https://chatgpt.com/share/abc",
       out: "./exports/thread.md",
       stdout: true,
@@ -32,6 +35,12 @@ describe("parseArgs", () => {
     expect(() => parseArgs(["--url", "https://chatgpt.com/share/abc", "--wat"])).toThrow(
       "Unknown argument: --wat. Run with the documented flags only."
     );
+  });
+
+  it("fails on unsupported format values", () => {
+    expect(() =>
+      parseArgs(["--format", "html", "--url", "https://chatgpt.com/share/abc"])
+    ).toThrow('Unsupported value for --format: html. Use "markdown" or "pdf".');
   });
 
   it("fails when a flag that requires a value is missing one", () => {
@@ -199,5 +208,15 @@ describe("validateOptions", () => {
         stdout: true
       })
     ).not.toThrow();
+  });
+
+  it("rejects stdout for pdf output", () => {
+    expect(() =>
+      validateOptions({
+        url: "https://chatgpt.com/share/abc",
+        format: "pdf",
+        stdout: true
+      })
+    ).toThrow("--stdout is only supported for markdown output right now");
   });
 });

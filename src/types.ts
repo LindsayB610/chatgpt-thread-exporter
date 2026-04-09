@@ -33,6 +33,7 @@ export type ExportTranscript = {
 
 export type CliOptions = {
   url: string;
+  format?: "markdown" | "pdf";
   stdout?: boolean;
   out?: string;
   repo?: string;
@@ -83,5 +84,6 @@ export type PipelineArtifacts = {
   fetchResult: FetchResult;
   extractResult: ExtractResult;
   transcript: ExportTranscript;
-  markdown: string;
+  outputFormat: "markdown" | "pdf";
+  outputContent: string | Uint8Array;
 };

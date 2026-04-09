@@ -48,6 +48,7 @@ function createDependencies(overrides: Partial<PipelineDependencies> = {}): Pipe
       turns: []
     }),
     renderMarkdown: vi.fn().mockReturnValue("# Fixture Thread\n"),
+    renderPdf: vi.fn().mockResolvedValue(new Uint8Array([37, 80, 68, 70])),
     writeLocalFile: vi.fn().mockResolvedValue(undefined),
     writeGitHubFile: vi.fn().mockResolvedValue(undefined),
     stdoutWrite: vi.fn(),
@@ -75,7 +76,8 @@ function createArtifacts(options: CliOptions = { url: "https://chatgpt.com/share
       title: "Fixture Thread",
       turns: []
     },
-    markdown: "# Fixture Thread\n"
+    outputFormat: "markdown",
+    outputContent: "# Fixture Thread\n"
   };
 }
 
@@ -117,7 +119,8 @@ describe("buildPipelineArtifacts", () => {
       renderMarkdown: vi.fn().mockImplementation(() => {
         order.push("render");
         return "# Fixture Thread\n";
-      })
+      }),
+      renderPdf: vi.fn()
     });
 
     const artifacts = await buildPipelineArtifacts(
@@ -133,8 +136,26 @@ describe("buildPipelineArtifacts", () => {
       "normalize:https://chatgpt.com/share/abc",
       "render"
     ]);
-    expect(artifacts.markdown).toBe("# Fixture Thread\n");
+    expect(artifacts.outputContent).toBe("# Fixture Thread\n");
+    expect(artifacts.outputFormat).toBe("markdown");
     expect(artifacts.options.url).toBe("https://chatgpt.com/share/abc");
+  });
+
+  it("uses the PDF renderer when --format pdf is selected", async () => {
+    const dependencies = createDependencies();
+
+    const artifacts = await buildPipelineArtifacts(
+      {
+        url: "https://chatgpt.com/share/abc",
+        format: "pdf"
+      },
+      dependencies
+    );
+
+    expect(dependencies.renderPdf).toHaveBeenCalled();
+    expect(dependencies.renderMarkdown).not.toHaveBeenCalled();
+    expect(artifacts.outputFormat).toBe("pdf");
+    expect(artifacts.outputContent).toBeInstanceOf(Uint8Array);
   });
 });
 
@@ -288,6 +309,53 @@ describe("emitPipelineOutputs", () => {
     expect(dependencies.stdoutWrite).toHaveBeenCalledWith(
       "Saved export to GitHub: LindsayB610/chatgpt-thread-exporter/exports/thread.md\n"
     );
+  });
+
+  it("writes a PDF file to Downloads by default when format is pdf", async () => {
+    const home = await createTempDir();
+    vi.stubEnv("HOME", home);
+    const dependencies = createDependencies();
+
+    await emitPipelineOutputs(
+      {
+        ...createArtifacts({
+          url: "https://chatgpt.com/share/abc",
+          format: "pdf"
+        }),
+        outputFormat: "pdf",
+        outputContent: new Uint8Array([37, 80, 68, 70])
+      },
+      dependencies
+    );
+
+    expect(dependencies.writeLocalFile).toHaveBeenCalledWith(
+      path.join(home, "Downloads", "fixture-thread-export.pdf"),
+      new Uint8Array([37, 80, 68, 70]),
+      false
+    );
+    expect(dependencies.stdoutWrite).toHaveBeenCalledWith(
+      `Saved export to ${path.join(home, "Downloads", "fixture-thread-export.pdf")}\n`
+    );
+  });
+
+  it("rejects GitHub export for PDF output for now", async () => {
+    const dependencies = createDependencies();
+
+    await expect(
+      emitPipelineOutputs(
+        {
+          ...createArtifacts({
+            url: "https://chatgpt.com/share/abc",
+            format: "pdf",
+            repo: "LindsayB610/chatgpt-thread-exporter",
+            repoPath: "exports/thread.pdf"
+          }),
+          outputFormat: "pdf",
+          outputContent: new Uint8Array([37, 80, 68, 70])
+        },
+        dependencies
+      )
+    ).rejects.toThrow("GitHub export currently supports markdown only");
   });
 });
 

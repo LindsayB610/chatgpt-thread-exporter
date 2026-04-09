@@ -7,6 +7,9 @@ export function parseArgs(argv: string[]): CliOptions {
     const arg = argv[index];
 
     switch (arg) {
+      case "--format":
+        options.format = readFormatValue(readValue(argv, ++index, "--format"));
+        break;
       case "--url":
         options.url = readValue(argv, ++index, "--url");
         break;
@@ -75,6 +78,10 @@ export function validateOptions(options: CliOptions): void {
 
   if (options.branch && !options.repo) {
     throw new Error("--branch requires --repo");
+  }
+
+  if (options.format === "pdf" && options.stdout) {
+    throw new Error("--stdout is only supported for markdown output right now");
   }
 }
 
@@ -146,6 +153,14 @@ function validateRepoPath(repoPath: string): void {
   if (segments.includes("..")) {
     throw new Error("--repo-path must not contain parent-directory traversal");
   }
+}
+
+function readFormatValue(value: string): "markdown" | "pdf" {
+  if (value === "markdown" || value === "pdf") {
+    return value;
+  }
+
+  throw new Error(`Unsupported value for --format: ${value}. Use "markdown" or "pdf".`);
 }
 
 function isRepoSlug(value: string): boolean {

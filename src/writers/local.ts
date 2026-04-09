@@ -2,7 +2,11 @@ import { mkdir, stat, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import type { Stats } from "node:fs";
 
-export async function writeLocalFile(path: string, content: string, force: boolean): Promise<void> {
+export async function writeLocalFile(
+  path: string,
+  content: string | Uint8Array,
+  force: boolean
+): Promise<void> {
   await mkdir(dirname(path), { recursive: true });
 
   const existingStats = await getPathStats(path);
@@ -15,7 +19,12 @@ export async function writeLocalFile(path: string, content: string, force: boole
     throw new Error(`Refusing to overwrite existing file without --force: ${path}`);
   }
 
-  await writeFile(path, content, "utf8");
+  if (typeof content === "string") {
+    await writeFile(path, content, "utf8");
+    return;
+  }
+
+  await writeFile(path, content);
 }
 
 async function getPathStats(path: string): Promise<Stats | null> {

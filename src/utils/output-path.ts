@@ -3,13 +3,16 @@ import { homedir } from "node:os";
 import path from "node:path";
 import { slugify } from "./slug.js";
 
-export async function resolveDefaultOutPath(title: string): Promise<string> {
+export async function resolveDefaultOutPath(
+  title: string,
+  extension: "md" | "pdf" = "md"
+): Promise<string> {
   const downloadsDir = path.join(homedir(), "Downloads");
   const slug = slugify(title);
 
   for (let index = 0; index < 10_000; index += 1) {
     const suffix = index === 0 ? "" : `-${index + 1}`;
-    const candidate = path.join(downloadsDir, `${slug}-export${suffix}.md`);
+    const candidate = path.join(downloadsDir, `${slug}-export${suffix}.${extension}`);
 
     if (!(await pathExists(candidate))) {
       return candidate;

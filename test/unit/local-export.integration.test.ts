@@ -6,6 +6,7 @@ import { extractConversationPayload } from "../../src/extractor.js";
 import { normalizeTranscript } from "../../src/normalizer.js";
 import { runCli, type PipelineDependencies } from "../../src/pipeline.js";
 import { renderMarkdown } from "../../src/renderer.js";
+import { renderPdf } from "../../src/pdf/render-pdf.js";
 import { writeLocalFile } from "../../src/writers/local.js";
 import { readSharedLinkFixture } from "../helpers/fixtures.js";
 
@@ -40,7 +41,8 @@ afterEach(async () => {
 
 function createDependencies(
   html: string,
-  stdoutWrite: (chunk: string) => void
+  stdoutWrite: (chunk: string) => void,
+  overrides: Partial<Pick<PipelineDependencies, "renderPdf">> = {}
 ): PipelineDependencies {
   return {
     fetchSharedLink: vi.fn().mockResolvedValue({
@@ -52,6 +54,7 @@ function createDependencies(
     extractConversationPayload,
     normalizeTranscript,
     renderMarkdown,
+    renderPdf: overrides.renderPdf ?? renderPdf,
     writeLocalFile,
     writeGitHubFile: vi.fn().mockResolvedValue(undefined),
     stdoutWrite
@@ -145,5 +148,35 @@ describe("local export integration", () => {
     await expect(readFile(debugHtmlPath, "utf8")).resolves.toContain("__NEXT_DATA__");
     await expect(readFile(debugJsonPath, "utf8")).resolves.toContain('"status": "success"');
     await expect(pathExists(outPath)).resolves.toBe(false);
+  });
+
+  it("writes a full local PDF export from fixture HTML without printing to stdout", async () => {
+    const root = await createTempDir();
+    const outPath = path.join(root, "exports", "thread.pdf");
+    const stdoutWrites: string[] = [];
+    const pdfBytes = new Uint8Array([37, 80, 68, 70, 45, 49, 46, 55]);
+
+    await runCli(
+      [
+        "--url",
+        "https://chatgpt.com/share/example",
+        "--format",
+        "pdf",
+        "--out",
+        outPath
+      ],
+      createDependencies(
+        readSharedLinkFixture("code-block-thread.fixture.html"),
+        (chunk) => stdoutWrites.push(chunk),
+        {
+          renderPdf: vi.fn().mockResolvedValue(pdfBytes)
+        }
+      )
+    );
+
+    const output = await readFile(outPath);
+
+    expect(output).toEqual(Buffer.from(pdfBytes));
+    expect(stdoutWrites).toEqual([]);
   });
 });

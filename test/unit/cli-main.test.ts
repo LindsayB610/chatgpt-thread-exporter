@@ -93,6 +93,8 @@ describe("runCliMain", () => {
 
     expect(stdoutWrites.join("")).toContain("Default behavior:");
     expect(stdoutWrites.join("")).toContain("Downloads folder");
+    expect(stdoutWrites.join("")).toContain("--format <markdown|pdf>");
+    expect(stdoutWrites.join("")).toContain("npx playwright install chromium");
     expect(stderrWrites).toEqual([]);
     expect(exitCodes).toEqual([]);
     expect(runCliMock).not.toHaveBeenCalled();

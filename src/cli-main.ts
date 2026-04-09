@@ -15,8 +15,9 @@ Default behavior:
   Saves a Markdown export to your Downloads folder with a unique title-based filename.
 
 Common options:
+  --format <markdown|pdf>   Choose Markdown (default) or PDF export
   --stdout                 Print Markdown in Terminal instead of saving a default file
-  --out <path>             Save to a specific Markdown file
+  --out <path>             Save to a specific file path
   --repo <owner/name>      Write to a GitHub repository you control
   --repo-path <path>       Write to a specific repository path
   --branch <name>          Use a specific GitHub branch
@@ -28,6 +29,11 @@ Common options:
 GitHub export:
   Requires a GITHUB_TOKEN environment variable with access to the destination repo.
   Does not auto-create branches in v1.1.
+
+PDF export:
+  Requires Playwright and a Chromium browser install.
+  If needed, run: npx playwright install chromium
+  --stdout is not supported for PDF output.
 `;
 
 export async function runCliMain(

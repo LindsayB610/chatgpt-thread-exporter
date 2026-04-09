@@ -13,6 +13,7 @@ import { fetchSharedLink } from "./fetcher.js";
 import { extractConversationPayload } from "./extractor.js";
 import { normalizeTranscript } from "./normalizer.js";
 import { renderMarkdown } from "./renderer.js";
+import { renderPdf } from "./pdf/render-pdf.js";
 import { writeLocalFile } from "./writers/local.js";
 import { writeGitHubFile } from "./writers/github.js";
 
@@ -33,6 +34,7 @@ export type PipelineDependencies = {
   extractConversationPayload: typeof extractConversationPayload;
   normalizeTranscript: typeof normalizeTranscript;
   renderMarkdown: typeof renderMarkdown;
+  renderPdf: typeof renderPdf;
   writeLocalFile: typeof writeLocalFile;
   writeGitHubFile: typeof writeGitHubFile;
   stdoutWrite: (chunk: string) => void;
@@ -43,6 +45,7 @@ export const defaultPipelineDependencies: PipelineDependencies = {
   extractConversationPayload,
   normalizeTranscript,
   renderMarkdown,
+  renderPdf,
   writeLocalFile,
   writeGitHubFile,
   stdoutWrite: (chunk: string) => {
@@ -89,7 +92,7 @@ export async function buildPipelineArtifacts(
   options: CliOptions,
   dependencies: Pick<
     PipelineDependencies,
-    "fetchSharedLink" | "extractConversationPayload" | "normalizeTranscript" | "renderMarkdown"
+    "fetchSharedLink" | "extractConversationPayload" | "normalizeTranscript" | "renderMarkdown" | "renderPdf"
   > = defaultPipelineDependencies
 ): Promise<PipelineArtifacts> {
   const fetchResult = await dependencies.fetchSharedLink(options.url);
@@ -101,7 +104,7 @@ export async function buildPipelineArtifactsFromFetchResult(
   fetchResult: FetchResult,
   dependencies: Pick<
     PipelineDependencies,
-    "extractConversationPayload" | "normalizeTranscript" | "renderMarkdown"
+    "extractConversationPayload" | "normalizeTranscript" | "renderMarkdown" | "renderPdf"
   > = defaultPipelineDependencies
 ): Promise<PipelineArtifacts> {
   let extractResult: ExtractResult;
@@ -118,9 +121,13 @@ export async function buildPipelineArtifactsFromFetchResult(
     throw new PipelineStageError("normalize", error);
   }
 
-  let markdown: string;
+  const outputFormat = options.format ?? "markdown";
+  let outputContent: string | Uint8Array;
   try {
-    markdown = dependencies.renderMarkdown(transcript);
+    outputContent =
+      outputFormat === "pdf"
+        ? await dependencies.renderPdf(transcript)
+        : dependencies.renderMarkdown(transcript);
   } catch (error: unknown) {
     throw new PipelineStageError("render", error);
   }
@@ -130,7 +137,8 @@ export async function buildPipelineArtifactsFromFetchResult(
     fetchResult,
     extractResult,
     transcript,
-    markdown
+    outputFormat,
+    outputContent
   };
 }
 
@@ -139,17 +147,17 @@ export async function emitPipelineOutputs(
   dependencies: Pick<PipelineDependencies, "writeLocalFile" | "writeGitHubFile" | "stdoutWrite"> =
     defaultPipelineDependencies
 ): Promise<void> {
-  const { options, transcript, markdown, fetchResult, extractResult } = artifacts;
+  const { options, transcript, outputContent, outputFormat, fetchResult, extractResult } = artifacts;
   const shouldAutoSaveDefaultFile =
     !options.dryRun && !options.stdout && !options.out && !options.repo;
   const resolvedOutPath = shouldAutoSaveDefaultFile
-    ? await resolveDefaultOutPath(transcript.title)
+    ? await resolveDefaultOutPath(transcript.title, outputFormat === "pdf" ? "pdf" : "md")
     : options.out;
-  const shouldPrintMarkdown = options.stdout || options.dryRun;
+  const shouldPrintMarkdown = outputFormat === "markdown" && (options.stdout || options.dryRun);
 
   if (shouldPrintMarkdown) {
-    dependencies.stdoutWrite(markdown);
-    if (!markdown.endsWith("\n")) {
+    dependencies.stdoutWrite(outputContent as string);
+    if (!(outputContent as string).endsWith("\n")) {
       dependencies.stdoutWrite("\n");
     }
   }
@@ -166,7 +174,7 @@ export async function emitPipelineOutputs(
   }
 
   if (resolvedOutPath) {
-    await dependencies.writeLocalFile(resolvedOutPath, markdown, options.force === true);
+    await dependencies.writeLocalFile(resolvedOutPath, outputContent, options.force === true);
   }
 
   if (shouldAutoSaveDefaultFile && resolvedOutPath) {
@@ -174,12 +182,16 @@ export async function emitPipelineOutputs(
   }
 
   if (options.repo && options.repoPath) {
+    if (outputFormat !== "markdown" || typeof outputContent !== "string") {
+      throw new Error("GitHub export currently supports markdown only");
+    }
+
     await dependencies.writeGitHubFile({
       repo: options.repo,
       repoPath: options.repoPath,
       branch: options.branch,
       title: transcript.title,
-      content: markdown,
+      content: outputContent,
       force: options.force === true
     });
 
