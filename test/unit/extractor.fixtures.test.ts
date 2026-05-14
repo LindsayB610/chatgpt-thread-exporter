@@ -145,6 +145,21 @@ describe("extractConversationPayload fixture targets", () => {
     expect(payload.linearConversation).toEqual([7, 8]);
   });
 
+  it("prefers share-page titles over internal transport field names", () => {
+    const html = `
+      <script>
+        window.__reactRouterContext.streamController.enqueue(
+          "[\\"sharedConversationId\\",\\"real-share-id\\",\\"meta\\",{\\"_1\\":2},\\"pageTitle\\",\\"Artemis Program Explained\\",\\"ogTitle\\",\\"ChatGPT - Artemis Program Explained\\",\\"data\\",{\\"_3\\":4,\\"_5\\":6},\\"title\\",\\"create_time\\",1775775608,\\"linear_conversation\\",[]]"
+        );
+      </script>
+    `;
+
+    const result = extractConversationPayload(html);
+    const payload = asRecord(result.payload);
+
+    expect(payload.title).toBe("Artemis Program Explained");
+  });
+
   it("extracts plain-text message trees from the synthetic next-data fixture", () => {
     const result = extractConversationPayload(readSharedLinkFixture("plain-text-thread.fixture.html"));
     const payload = asRecord(result.payload);

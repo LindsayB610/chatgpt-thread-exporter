@@ -36,7 +36,7 @@ function extractReactRouterStreamPayload(html: string): ExtractResult | null {
   );
   const shareRegion = narrowToShareRegion(decodedStream);
   const shareTail = narrowToShareTail(decodedStream);
-  const title = requireLastMatch(shareRegion, /"title","([^"]+)"/gu, "stream title");
+  const title = extractReactRouterTitle(shareRegion, shareTail);
   const messages = firstJsonChunk ? extractReactRouterMessages(firstJsonChunk) : [];
 
   return {
@@ -124,6 +124,20 @@ function extractLinearConversation(decodedStream: string): number[] {
     .filter(Boolean)
     .map((value) => Number(value))
     .filter((value) => Number.isFinite(value));
+}
+
+function extractReactRouterTitle(shareRegion: string, shareTail: string): string {
+  const pageTitle = optionalMatch(shareTail, /"pageTitle","([^"]+)"/u);
+  if (pageTitle) {
+    return pageTitle;
+  }
+
+  const ogTitle = optionalMatch(shareTail, /"ogTitle","([^"]+)"/u);
+  if (ogTitle) {
+    return ogTitle.replace(/^ChatGPT\s*-\s*/u, "");
+  }
+
+  return requireLastMatch(shareRegion, /"title","([^"]+)"/gu, "stream title");
 }
 
 function requireMatch(source: string, pattern: RegExp, label: string): string {
