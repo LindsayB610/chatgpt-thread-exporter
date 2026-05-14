@@ -8,6 +8,22 @@
   "bin": {
     "chatgpt-thread-exporter": "./dist/cli.js"
   },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./pipeline": {
+      "types": "./dist/pipeline.d.ts",
+      "import": "./dist/pipeline.js"
+    },
+    "./pipeline.js": {
+      "types": "./dist/pipeline.d.ts",
+      "import": "./dist/pipeline.js"
+    }
+  },
   "files": [
     "dist",
     "README.md",
@@ -17,6 +33,7 @@
     "build": "node scripts/build.mjs",
     "check": "tsc --noEmit -p tsconfig.json",
     "dev": "tsx src/cli.ts",
+    "prepare": "npm run build",
     "test": "vitest run"
   },
   "engines": {
