@@ -161,6 +161,19 @@ Only use debug files if a thread exports strangely and you want to inspect what 
 npm run dev -- --url "https://chatgpt.com/share/69d82f78-1d20-83e8-bcbe-4bcf9675203b" --out "/Users/lindsaybrunner/Downloads/artemis-program-explained.md" --debug-html "/Users/lindsaybrunner/Downloads/artemis-program-explained-debug.html" --debug-json "/Users/lindsaybrunner/Downloads/artemis-program-explained-debug.json"
 ```
 
+## Development Checks
+
+Development requires Node.js 20.19 or newer. Before submitting a change, run:
+
+```bash
+npm run build
+npm run check
+npm test
+npm run test:coverage
+```
+
+The coverage command enforces minimum project-wide thresholds. The test suite uses mocks for Playwright and does not launch an installed browser; verify actual PDF generation separately with a dedicated headless Chromium installation when browser behavior changes.
+
 ## What It Does Today
 
 - fetches public ChatGPT shared links

@@ -64,6 +64,25 @@ describe("renderChatGptHtml", () => {
     expect(html).not.toContain("## Section Heading");
   });
 
+  it("renders the whitespace sequence covered by the marked recursion advisory", () => {
+    const html = renderChatGptHtml({
+      sourceUrl: "https://chatgpt.com/share/example",
+      finalUrl: "https://chatgpt.com/share/example",
+      exportedAt: "2026-04-09T00:00:00.000Z",
+      title: "Whitespace Rendering Test",
+      turns: [
+        {
+          id: "assistant-1",
+          role: "assistant",
+          blocks: [{ kind: "text", text: "\t\v\n" }]
+        }
+      ]
+    });
+
+    expect(html).toContain("<pre><code>\v\n");
+    expect(html).toContain("</code></pre>");
+  });
+
   it("renders code blocks, unknown blocks, and attachments in dedicated surfaces", () => {
     const transcript = normalizeTranscript(
       fetchResult,

@@ -110,40 +110,24 @@ Compression guidance:
 
 ## PDF Engine Decision
 
-Planned first implementation:
+Implemented:
 
 - use a headless browser PDF engine driven from Node
-- prefer a mainstream open source choice with good print CSS support
-- likely candidate: Playwright
+- Playwright provides the print CSS and PDF engine
 
 Decision note:
 
-- do not add the browser dependency until the HTML renderer is in place and tested
+- the HTML renderer is independently unit tested before its output is handed to Playwright
 
-## Testing Plan
+## Testing
 
-Before full PDF generation lands:
+- unit tests cover the ChatGPT-style HTML renderer and Playwright handoff
+- fixture-backed integration tests verify the PDF pipeline and preserve Markdown behavior
+- browser-level PDF smoke testing requires a dedicated headless Chromium installation and remains a separate release check
 
-- add unit tests for the ChatGPT-style HTML renderer
-- snapshot or golden-test representative HTML output
-- verify user/assistant layout markers, code blocks, metadata, and attachment rendering
+## Implemented Deliverables
 
-When full PDF generation lands:
-
-- add a smoke test that produces a PDF file from a fixture transcript
-- validate that Markdown export still works unchanged
-
-## First Scaffold Deliverables
-
-This scaffold phase should include:
-
-- this mini-spec
-- a dedicated ChatGPT-style HTML renderer module
+- dedicated ChatGPT-style HTML renderer module
 - embedded theme CSS
 - renderer tests proving the HTML shape is stable
-
-This scaffold phase should not yet claim:
-
-- finished CLI `--format pdf` support
-- finished browser-driven PDF generation
-- release-ready PDF output
+- CLI `--format pdf` support backed by Playwright

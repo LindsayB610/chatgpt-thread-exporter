@@ -34,19 +34,22 @@
     "check": "tsc --noEmit -p tsconfig.json",
     "dev": "tsx src/cli.ts",
     "prepare": "npm run build",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "engines": {
     "node": ">=20"
   },
   "devDependencies": {
-    "@types/node": "^24.5.0",
-    "tsx": "^4.20.5",
-    "typescript": "^5.9.2",
-    "vitest": "^3.2.4"
+    "@types/node": "^24.13.4",
+    "@vitest/coverage-v8": "^4.1.11",
+    "tsx": "^4.23.13",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.6",
+    "vitest": "^4.1.11"
   },
   "dependencies": {
-    "marked": "^18.0.0",
-    "playwright": "^1.59.1"
+    "marked": "^18.0.13",
+    "playwright": "^1.63.0"
   }
 }
