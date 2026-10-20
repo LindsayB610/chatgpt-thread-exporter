@@ -1,4 +1,4 @@
-import { rm } from "node:fs/promises";
+import { chmod, rm } from "node:fs/promises";
 import { spawn } from "node:child_process";
 
 await rm(new URL("../dist", import.meta.url), { recursive: true, force: true });
@@ -20,3 +20,7 @@ await new Promise((resolve, reject) => {
 
   child.on("error", reject);
 });
+
+if (process.platform !== "win32") {
+  await chmod(new URL("../dist/cli.js", import.meta.url), 0o755);
+}
